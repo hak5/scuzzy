@@ -732,12 +732,14 @@ func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) 
 	endpoint := "/search/ask"
 	spaceId := ""
 	docsURL := "https://docs.hak5.org"
+	searchingIn := "Asking the USB Rubber Ducky Docs..."
 	switch m.ChannelID {
 	case "522275837651714048":
 		//ducky
 		spaceId = "-MiIkRK_o3RBhZzUkrzr"
 		docsURL = "https://docs.hak5.org/hak5-usb-rubber-ducky/"
 	case "1006233482957164634":
+		searchingIn = "Asking the PayloadStudio Docs..."
 		//payloadstudio
 		spaceId = "RgTCQkzfO7AUWTT3gFAq"
 		docsURL = "https://docs.hak5.org/payload-studio/"
@@ -747,8 +749,12 @@ func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) 
 		docsURL = "https://docs.hak5.org/hak5-usb-rubber-ducky/"
 		// return errors.New("lens not supported yet")
 	}
-
 	askEndpoint := apiurl + spaceId + endpoint
+
+	_, err := s.ChannelMessageSend(m.ChannelID, searchingIn)
+	if err != nil {
+		return err
+	}
 
 	j, err := json.Marshal(&models.AISearchRequest{Query: input})
 	if err != nil {
