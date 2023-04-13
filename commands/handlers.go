@@ -51,6 +51,7 @@ func (c *Commands) RegisterHandlers() {
 	c.RegisterCommand("cmtoin", "Convert Centimeters to Inches", false, c.handleCentimeterToInch)
 	c.RegisterCommand("intocm", "Convert Inches to Centimeters", false, c.handleInchToCentimeter)
 	c.RegisterCommand("google4u", "Displays a letmegooglethat link", false, c.handleGoogle4U)
+	c.RegisterCommand("askdocs", "Ask docs.hak5.org a question", false, c.handleDocs)
 
 	// Admin Commands
 	c.RegisterCommand("ping", "Ping Scuzzy", true, c.handlePing)

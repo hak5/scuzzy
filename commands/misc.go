@@ -1,10 +1,13 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -713,5 +716,75 @@ func (c *Commands) handleGoogle4U(s *discordgo.Session, m *discordgo.MessageCrea
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	args := strings.Split(m.Content, " ")
+
+	if len(args) < 2 {
+		return errors.New("missing question")
+	}
+
+	input := m.Content[strings.Index(m.Content, " "):len(m.Content)]
+
+	apiurl := "https://api.gitbook.com/v1/spaces/"
+	endpoint := "/search/ask"
+	spaceId := ""
+	docsURL := "https://docs.hak5.org"
+	switch m.ChannelID {
+	case "522275837651714048":
+		//ducky
+		spaceId = "-MiIkRK_o3RBhZzUkrzr"
+		docsURL = "https://docs.hak5.org/hak5-usb-rubber-ducky/"
+	case "1006233482957164634":
+		//payloadstudio
+		spaceId = "RgTCQkzfO7AUWTT3gFAq"
+		docsURL = "https://docs.hak5.org/payload-studio/"
+	default:
+		// Default to ducky for testing in bot-testing channel
+		spaceId = "-MiIkRK_o3RBhZzUkrzr"
+		docsURL = "https://docs.hak5.org/hak5-usb-rubber-ducky/"
+		// return errors.New("lens not supported yet")
+	}
+
+	askEndpoint := apiurl + spaceId + endpoint
+
+	req := models.AISearchRequest{Query: url.QueryEscape(input)}
+	j, err := json.Marshal(req)
+	if err != nil {
+		return errors.New("error marshalling input")
+	}
+
+	r, err := http.NewRequest("POST", askEndpoint, bytes.NewBuffer(j))
+	if err != nil {
+		return errors.New("error creating request")
+	}
+
+	r.Header.Add("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(r)
+	if err != nil {
+		return errors.New("error creating request client")
+	}
+
+	defer res.Body.Close()
+
+	resp := &models.AISearchResult{}
+	derr := json.NewDecoder(res.Body).Decode(resp)
+	if derr != nil {
+		return errors.New("error getting response from docs")
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return errors.New("error getting response from docs: " + res.Status)
+	}
+
+	_, err = s.ChannelMessageSend(m.ChannelID, docsURL+"\n"+resp.Answer.Text)
+	if err != nil {
+		log.Print("[!] Error writing response: " + err.Error())
+		return err
+	}
+
 	return nil
 }
