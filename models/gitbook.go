@@ -1,8 +1,8 @@
 package models
 
 type AISearchRequest struct {
-	Query           string   `json:"query"`
-	PreviousQueries []string `json:"previousQueries"`
+	Query string `json:"query"`
+	// PreviousQueries []string `json:"previousQueries"`
 }
 
 type AISearchResult struct {

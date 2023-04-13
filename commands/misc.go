@@ -750,8 +750,7 @@ func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) 
 
 	askEndpoint := apiurl + spaceId + endpoint
 
-	req := models.AISearchRequest{Query: input}
-	j, err := json.Marshal(req)
+	j, err := json.Marshal(&models.AISearchRequest{Query: input})
 	if err != nil {
 		return errors.New("error marshalling input")
 	}
