@@ -732,25 +732,67 @@ func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) 
 	endpoint := "/search/ask"
 	spaceId := ""
 	docsURL := "https://docs.hak5.org"
-	searchingIn := "Asking the USB Rubber Ducky Docs..."
+	pre := "<:thonk:666272807524761620> Asking the"
+	productEmoji := ""
+	productName := ""
+	post := "docs..."
+
 	switch m.ChannelID {
 	case "522275837651714048":
-		//ducky
+		productName = "USB Rubber Ducky"
+		productEmoji = "<:Rubber_Ducky:1063661661795385384>"
 		spaceId = "-MiIkRK_o3RBhZzUkrzr"
 		docsURL = "https://docs.hak5.org/hak5-usb-rubber-ducky/"
 	case "1006233482957164634":
-		searchingIn = "Asking the PayloadStudio Docs..."
-		//payloadstudio
+		productName = "PayloadStudio"
+		productEmoji = "<:payload_studio:1053210968064262234>"
 		spaceId = "RgTCQkzfO7AUWTT3gFAq"
 		docsURL = "https://docs.hak5.org/payload-studio/"
-	default:
-		// Default to ducky for testing in bot-testing channel
-		spaceId = "-MiIkRK_o3RBhZzUkrzr"
-		docsURL = "https://docs.hak5.org/hak5-usb-rubber-ducky/"
-		// return errors.New("lens not supported yet")
-	}
-	askEndpoint := apiurl + spaceId + endpoint
+	case "1009919913877590146":
+		productName = "Bash Bunny"
+		productEmoji = "<:Bash_Bunny:1063661828753858680>"
+		spaceId = "nxJgJ9UdPfrcuL1U8DpL"
+		docsURL = "https://docs.hak5.org/bash-bunny/"
+	case "709235715120168970":
+		productName = "Key Croc"
+		productEmoji = "<:Key_Croc:1063661834093199431>"
+		spaceId = "-MhLOzjhonMdC6SLKqRt"
+		docsURL = "https://docs.hak5.org/key-croc/"
+	case "610344558655438858":
+		productName = "Shark Jack"
+		productEmoji = "<:Shark_Jack:1063661835888381952>"
+		spaceId = "-MhxW6geyenAGJvaKW11"
+		docsURL = "https://docs.hak5.org/shark-jack/"
+	case "522276096746717184":
+		productName = "Cloud C2"
+		productEmoji = "<:Cloud_C2:1063661578181943336>"
+		spaceId = "-MhzWyFhpTDfjfUXIt5K"
+		docsURL = "https://docs.hak5.org/cloud-c2/"
+	case "608057573517557809":
+		productName = "Screen Crab"
+		productEmoji = "<:Screen_Crab:1063661831756988427>"
+		spaceId = "-MiWySN4BHDJlUatEfm3"
+		docsURL = "https://docs.hak5.org/screen-crab/"
+	case "522275782731497473":
+		productName = "WiFi Pineapple"
+		productEmoji = "<:WiFi_Pineapple:1063661628207411251>"
+		spaceId = "-Mhuhsyl_byoEWXOc5EU"
+		docsURL = "https://docs.hak5.org/wifi-pineapple/"
+	case "1007363521098551349":
+		productName = "WiFi Coconut"
+		productEmoji = "<:WiFi_Coconut:1063661830309953606>"
+		spaceId = "DkilLranx3TNqKgzbBZ9"
+		docsURL = "https://docs.hak5.org/wifi-coconut/"
 
+	// TODO separate squirrel and turtle channels
+
+	default:
+		return errors.New("command not supported for this channel yet")
+
+	}
+
+	askEndpoint := apiurl + spaceId + endpoint
+	searchingIn := pre + " " + productEmoji + " " + productName + " " + post
 	_, err := s.ChannelMessageSend(m.ChannelID, searchingIn)
 	if err != nil {
 		return err
@@ -785,7 +827,8 @@ func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) 
 		return errors.New("error getting response from docs: " + res.Status)
 	}
 
-	_, err = s.ChannelMessageSend(m.ChannelID, docsURL+"\n"+resp.Answer.Text)
+	prepend := "<:9999iq:1050238565671514172> AI Generated Response:\n\n"
+	_, err = s.ChannelMessageSend(m.ChannelID, prepend+resp.Answer.Text+"\n\n"+docsURL)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err
