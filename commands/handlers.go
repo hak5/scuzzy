@@ -51,7 +51,18 @@ func (c *Commands) RegisterHandlers() {
 	c.RegisterCommand("cmtoin", "Convert Centimeters to Inches", false, c.handleCentimeterToInch)
 	c.RegisterCommand("intocm", "Convert Inches to Centimeters", false, c.handleInchToCentimeter)
 	c.RegisterCommand("google4u", "Displays a letmegooglethat link", false, c.handleGoogle4U)
-	c.RegisterCommand("askdocs", "Ask docs.hak5.org a question", false, c.handleDocs)
+
+	//Product Helpers
+	c.RegisterCommand("askdocs", "Ask docs.hak5.org a question", false, c.handleAskDocs)
+	c.RegisterCommand("docs", "Link Docs", false, c.handleDocs)
+	c.RegisterCommand("github", "Link Github", false, c.handleGithub)
+	c.RegisterCommand("payloads", "Link Github + PayloadHub", false, c.handlePayloads)
+	c.RegisterCommand("payloadhub", "Link PayloadHub", false, c.handlePayloadHub)
+	c.RegisterCommand("support", "Link Support", false, c.handleSupport)
+	c.RegisterCommand("shop", "Link Shop", false, c.handleShop)
+	c.RegisterCommand("buy", "Link Shop", false, c.handleShop)
+	c.RegisterCommand("invite", "Link direct channel invite", false, c.handleInvite)
+	// TODO payloadstudio view
 
 	// Admin Commands
 	c.RegisterCommand("ping", "Ping Scuzzy", true, c.handlePing)
