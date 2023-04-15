@@ -304,3 +304,93 @@ func (c *Commands) handleUnIgnoreUser(s *discordgo.Session, m *discordgo.Message
 
 	return nil
 }
+
+func (c *Commands) handleMoveto(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	args := strings.Split(m.Content, " ")
+	if len(args) < 2 {
+		return errors.New("missing arg")
+	}
+	input := m.Content[strings.Index(m.Content, " "):len(m.Content)]
+
+	repliedTo, err := s.ChannelMessage(m.ChannelID, m.MessageReference.MessageID)
+	if err != nil {
+		return errors.New("error getting target message")
+	}
+
+	moveToId := ""
+	channels, _ := s.GuildChannels(c.Config.GuildID)
+	for _, c := range channels {
+		if c.Type != discordgo.ChannelTypeGuildText {
+			continue
+		}
+		if strings.Contains(input, c.ID) {
+			moveToId = c.ID
+			break
+		}
+	}
+
+	if moveToId == "" {
+		return errors.New("failed to link channels")
+	}
+
+	_, err = s.ChannelMessageSend(m.ChannelID, "Moderator <@"+m.Author.ID+"> moved <@"+repliedTo.Author.ID+">'s message to <#"+moveToId+"> to continue the conversation there")
+	if err != nil {
+		return errors.New("error announcing move")
+	}
+
+	_, err = s.ChannelMessageSend(moveToId, "Moderator <@"+m.Author.ID+"> moved this message from <#"+m.ChannelID+">\n\nOriginal message:\n\n <@"+repliedTo.Author.ID+">: "+repliedTo.Content)
+	if err != nil {
+		return errors.New("error moving message")
+	}
+
+	err = s.ChannelMessageDelete(m.ChannelID, m.ID)
+	if err != nil {
+		return errors.New("error (re)moving command message")
+	}
+
+	err = s.ChannelMessageDelete(m.ChannelID, m.MessageReference.MessageID)
+	if err != nil {
+		return errors.New("error (re)moving message")
+	}
+	return nil
+}
+
+func (c *Commands) handleBringto(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	args := strings.Split(m.Content, " ")
+	if len(args) < 2 {
+		return errors.New("missing arg")
+	}
+	input := m.Content[strings.Index(m.Content, " "):len(m.Content)]
+
+	repliedTo, err := s.ChannelMessage(m.ChannelID, m.MessageReference.MessageID)
+	if err != nil {
+		return errors.New("error getting target message")
+	}
+
+	moveToId := ""
+	channels, _ := s.GuildChannels(c.Config.GuildID)
+	for _, c := range channels {
+		if c.Type != discordgo.ChannelTypeGuildText {
+			continue
+		}
+		if strings.Contains(input, c.ID) {
+			moveToId = c.ID
+			break
+		}
+	}
+
+	if moveToId == "" {
+		return errors.New("failed to link channels")
+	}
+
+	_, err = s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+"> copied <@"+repliedTo.Author.ID+">'s message to <#"+moveToId+"> to continue the conversation there.")
+	if err != nil {
+		return errors.New("error announcing move")
+	}
+
+	_, err = s.ChannelMessageSend(moveToId, "<@"+m.Author.ID+"> copied this message from <#"+m.ChannelID+">\n\nOriginal message:\n\n <@"+repliedTo.Author.ID+">: "+repliedTo.Content)
+	if err != nil {
+		return errors.New("error moving message")
+	}
+	return nil
+}

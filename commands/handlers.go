@@ -80,6 +80,8 @@ func (c *Commands) RegisterHandlers() {
 	c.RegisterCommand("saveconfig", "Save Configuration to Disk", true, c.handleSaveConfig)
 	c.RegisterCommand("reloadconfig", "Reload Configuration", true, c.handleReloadConfig)
 	c.RegisterCommand("addrole", "Add a joinable role", true, c.handleAddCustomRole)
+	c.RegisterCommand("moveto", "Move a users message to another channel (deletes originals)", true, c.handleMoveto)
+	c.RegisterCommand("bringto", "Copy a users message to another channel (keeps originals) ", true, c.handleBringto)
 }
 
 func (c *Commands) ProcessCommand(s *discordgo.Session, m *discordgo.MessageCreate) error {
