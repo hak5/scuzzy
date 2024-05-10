@@ -1,38 +1,43 @@
 package models
 
 type Product struct {
-	ProductName  string `json:"productName"`
-	Urllabel     string `json:"urllabel"`
-	Emoji        string `json:"logo"`
-	ChannelID    string `json:"channelid"`
-	SpaceID      string `json:"spaceid"`
-	Docslink     string `json:"docslink"`
-	Shoplink     string `json:"shoplink"`
-	Payloadslink string `json:"payloadslink"`
-	Githublink   string `json:"githublink"`
-	InviteLink   string `json:"invitelink"`
-	SupportLink  string `json:"supportlink"`
+	ProductName    string   `json:"productName"`
+	Aliases        []string `json:"aliases"`
+	Urllabel       string   `json:"urllabel"`
+	Emoji          string   `json:"logo"`
+	ChannelID      string   `json:"channelid"`
+	SpaceID        string   `json:"spaceid"`
+	Docslink       string   `json:"docslink"`
+	Shoplink       string   `json:"shoplink"`
+	Payloadslink   string   `json:"payloadslink"`
+	Githublink     string   `json:"githublink"`
+	InviteLink     string   `json:"invitelink"`
+	SupportLink    string   `json:"supportlink"`
+	GettingStarted string   `json:"gettingstarted"`
 }
 
 var GITBOOKAPI = "https://api.gitbook.com/v1/spaces/"
 var SEARCHENDPOINT = "/search/ask"
 
 var Default = Product{
-	ProductName:  "",
-	Urllabel:     "",
-	Emoji:        "<:hak5:1063661436187975701>",
-	ChannelID:    "824326326076702770",
-	SpaceID:      "",
-	Docslink:     "https://docs.hak5.org",
-	Shoplink:     "https://shop.hak5.org",
-	Payloadslink: "https://payloadhub.com",
-	Githublink:   "https://github.com/hak5",
-	InviteLink:   "https://discord.gg/hak5",
-	SupportLink:  "https://hak5.org/support",
+	ProductName:    "",
+	Aliases:        []string{},
+	Urllabel:       "",
+	Emoji:          "<:hak5:1063661436187975701>",
+	ChannelID:      "824326326076702770",
+	SpaceID:        "",
+	Docslink:       "https://docs.hak5.org",
+	Shoplink:       "https://shop.hak5.org",
+	Payloadslink:   "https://payloadhub.com",
+	Githublink:     "https://github.com/hak5",
+	InviteLink:     "https://discord.gg/hak5",
+	SupportLink:    "https://hak5.org/support",
+	GettingStarted: "https://docs.hak5.org",
 }
 
 var Ducky = Product{
 	ProductName:  "USB Rubber Ducky",
+	Aliases:      []string{"usb rubber ducky", "ducky", "duck", "rubber ducky"},
 	Urllabel:     "usb-rubber-ducky",
 	Emoji:        "<:Rubber_Ducky:1063661661795385384>",
 	ChannelID:    "522275837651714048",
@@ -48,6 +53,7 @@ var Ducky = Product{
 var PayloadStudio = Product{
 	ProductName:  "PayloadStudio",
 	Urllabel:     Default.Urllabel,
+	Aliases:      []string{"PayloadStudio", "PS", "PSP", "payload studio"},
 	Emoji:        "<:payload_studio:1053210968064262234>",
 	ChannelID:    "1006233482957164634",
 	SpaceID:      "RgTCQkzfO7AUWTT3gFAq",
@@ -61,6 +67,7 @@ var PayloadStudio = Product{
 var CloudC2 = Product{
 	ProductName:  "Cloud C2",
 	Urllabel:     Default.Urllabel,
+	Aliases:      []string{"CloudC2", "Cloud C2", "C2"},
 	Emoji:        "<:Cloud_C2:1063661578181943336>",
 	ChannelID:    "522276096746717184",
 	SpaceID:      "<:Cloud_C2:1063661578181943336>",
@@ -74,6 +81,7 @@ var CloudC2 = Product{
 var Crab = Product{
 	ProductName:  "Screen Crab",
 	Urllabel:     Default.Urllabel,
+	Aliases:      []string{"screen crab", "crab"},
 	Emoji:        "<:Screen_Crab:1063661831756988427>",
 	ChannelID:    "608057573517557809",
 	SpaceID:      "-MiWySN4BHDJlUatEfm3",
@@ -87,6 +95,7 @@ var Crab = Product{
 var Coconut = Product{
 	ProductName:  "WiFi Coconut",
 	Urllabel:     Default.Urllabel,
+	Aliases:      []string{"wifi coconut", "coconut"},
 	Emoji:        "<:WiFi_Coconut:1063661830309953606>",
 	ChannelID:    "1007363521098551349",
 	SpaceID:      "DkilLranx3TNqKgzbBZ9",
@@ -100,6 +109,7 @@ var Coconut = Product{
 var Pineapple = Product{
 	ProductName:  "WiFi Pineapple",
 	Urllabel:     Default.Urllabel,
+	Aliases:      []string{"wifi pineapple", "pineapple"},
 	Emoji:        "<:WiFi_Pineapple:1063661628207411251>",
 	ChannelID:    "522275782731497473",
 	SpaceID:      "-Mhuhsyl_byoEWXOc5EU",
@@ -114,6 +124,7 @@ var Croc = Product{
 	ProductName:  "Key Croc",
 	Urllabel:     "key-croc",
 	Emoji:        "<:Key_Croc:1063661834093199431>",
+	Aliases:      []string{"key croc", "croc"},
 	ChannelID:    "709235715120168970",
 	SpaceID:      "-MhLOzjhonMdC6SLKqRt",
 	Docslink:     "https://docs.hak5.org/key-croc/",
@@ -127,6 +138,7 @@ var Bunny = Product{
 	ProductName:  "Bash Bunny",
 	Urllabel:     "bash-bunny",
 	Emoji:        "<:Bash_Bunny:1063661828753858680>",
+	Aliases:      []string{"bash bunny", "bunny", "bb"},
 	ChannelID:    "1009919913877590146",
 	SpaceID:      "nxJgJ9UdPfrcuL1U8DpL",
 	Docslink:     "https://docs.hak5.org/bash-bunny/",
@@ -140,6 +152,7 @@ var Squirrel = Product{
 	ProductName:  "Packet Squirrel",
 	Urllabel:     "packet-squirrel",
 	Emoji:        "<:packet_squirrel:1063661837398315079>",
+	Aliases:      []string{"packet squirrel", "squirrel"},
 	ChannelID:    "522275913031745548",
 	SpaceID:      "-MiX86qQFvjhg-a6RwWr",
 	Docslink:     "https://docs.hak5.org/packet-squirrel",
@@ -152,6 +165,7 @@ var Squirrel = Product{
 var Turtle = Product{
 	ProductName:  "LAN Turtle",
 	Urllabel:     "lan-turtle",
+	Aliases:      []string{"lan turtle", "turtle"},
 	Emoji:        "<:lan_turtle:1063661838937620480>",
 	ChannelID:    "522275913031745548",
 	SpaceID:      "N8g6UIGOyv4mW7rOOuC8",
@@ -165,6 +179,7 @@ var Turtle = Product{
 var Shark = Product{
 	ProductName:  "Shark Jack",
 	Urllabel:     "shark-jack",
+	Aliases:      []string{"shark jack", "shark"},
 	Emoji:        "<:Shark_Jack:1063661835888381952>",
 	ChannelID:    "610344558655438858",
 	SpaceID:      "-MhxW6geyenAGJvaKW11",
@@ -178,6 +193,7 @@ var Shark = Product{
 var OMG = Product{
 	ProductName:  "O.MG Devices",
 	Urllabel:     "omg",
+	Aliases:      []string{"omg", "omg cable", "omg adapter", "omg plug", "plug", "cable"},
 	Emoji:        "<:omg:1063696145022468116>",
 	ChannelID:    "953129985131040838",
 	SpaceID:      Default.SpaceID,

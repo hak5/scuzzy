@@ -2,12 +2,11 @@ package commands
 
 import (
 	"errors"
+	"github.com/bwmarrin/discordgo"
+	"github.com/foxtrot/scuzzy/actions"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/foxtrot/scuzzy/actions"
 )
 
 func (c *Commands) handleSetSlowmode(s *discordgo.Session, m *discordgo.MessageCreate) error {

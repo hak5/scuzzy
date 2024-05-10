@@ -204,10 +204,14 @@ func (c *Commands) ProcessMessage(s *discordgo.Session, m interface{}) {
 	switch m.(type) {
 	case *discordgo.MessageCreate:
 		// Pass Messages to the command processor
+		track(m.(*discordgo.MessageCreate).Message)
 		err := c.ProcessCommand(s, m.(*discordgo.MessageCreate))
 		if err != nil {
 			log.Println("[!] Error: " + err.Error())
 		}
+		break
+	case *discordgo.MessageEdit:
+		//TODO logging
 		break
 	case *discordgo.MessageDelete:
 		// Log deleted messages to the logging channel.

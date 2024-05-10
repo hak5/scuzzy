@@ -11,6 +11,46 @@ import (
 	"strings"
 )
 
+// TODO for use in command arguments
+/* Match on one two or three word arguments*/
+func aliasMatch(product models.Product, args []string) bool {
+	return strings.Contains(strings.Join(product.Aliases[:], " "), args[1]) ||
+		strings.Contains(strings.Join(product.Aliases, " "), strings.Join(args[1:3], " ")) ||
+		strings.Contains(strings.Join(product.Aliases, " "), strings.Join(args[1:4], " "))
+}
+
+func (c *Commands) matchAlias(args []string) models.Product {
+	switch true {
+	case aliasMatch(models.Ducky, args):
+		return models.Ducky
+	case aliasMatch(models.PayloadStudio, args):
+		return models.PayloadStudio
+	case aliasMatch(models.Bunny, args):
+		return models.Bunny
+	case aliasMatch(models.Croc, args):
+		return models.Croc
+	case aliasMatch(models.Shark, args):
+		return models.Shark
+	case aliasMatch(models.CloudC2, args):
+		return models.CloudC2
+	case aliasMatch(models.Crab, args):
+		return models.Crab
+	case aliasMatch(models.Pineapple, args):
+		return models.Pineapple
+	case aliasMatch(models.Coconut, args):
+		return models.Coconut
+	case aliasMatch(models.Squirrel, args):
+		return models.Squirrel
+	case aliasMatch(models.Turtle, args):
+		return models.Turtle
+	case aliasMatch(models.OMG, args):
+		return models.OMG
+	default:
+		return models.Default
+	}
+}
+
+// why i didnt just use a map? because im dumb
 func (c *Commands) getProductFromChannelID(cid string) models.Product {
 	switch cid {
 	case models.Ducky.ChannelID:
