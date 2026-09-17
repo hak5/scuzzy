@@ -32,8 +32,8 @@ func (c *Commands) handleSetSlowmode(s *discordgo.Session, m *discordgo.MessageC
 			for _, channel := range channels {
 				currPos := channel.Position
 				s.ChannelEditComplex(channel.ID, &discordgo.ChannelEdit{
-					Position:         currPos,
-					RateLimitPerUser: slowModeTime,
+					Position:         &currPos,
+					RateLimitPerUser: &slowModeTime,
 				})
 			}
 		}
@@ -45,8 +45,8 @@ func (c *Commands) handleSetSlowmode(s *discordgo.Session, m *discordgo.MessageC
 
 		currPos := currChan.Position
 		_, err = s.ChannelEditComplex(m.ChannelID, &discordgo.ChannelEdit{
-			Position:         currPos,
-			RateLimitPerUser: slowModeTime,
+			Position:         &currPos,
+			RateLimitPerUser: &slowModeTime,
 		})
 		if err != nil {
 			return err
@@ -77,8 +77,8 @@ func (c *Commands) handleUnsetSlowmode(s *discordgo.Session, m *discordgo.Messag
 			for _, channel := range channels {
 				currPos := channel.Position
 				s.ChannelEditComplex(channel.ID, &discordgo.ChannelEdit{
-					Position:         currPos,
-					RateLimitPerUser: secs,
+					Position:         &currPos,
+					RateLimitPerUser: &secs,
 				})
 			}
 		}
@@ -90,8 +90,8 @@ func (c *Commands) handleUnsetSlowmode(s *discordgo.Session, m *discordgo.Messag
 
 		currPos := currChan.Position
 		_, err = s.ChannelEditComplex(m.ChannelID, &discordgo.ChannelEdit{
-			Position:         currPos,
-			RateLimitPerUser: secs,
+			Position:         &currPos,
+			RateLimitPerUser: &secs,
 		})
 		if err != nil {
 			return err

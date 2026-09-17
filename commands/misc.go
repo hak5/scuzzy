@@ -579,11 +579,6 @@ func (c *Commands) handleUserInfo(s *discordgo.Session, m *discordgo.MessageCrea
 		rUserNick = "No Nickname"
 	}
 
-	rJoinTimeP, err := rJoinTime.Parse()
-	if err != nil {
-		return err
-	}
-
 	rRolesTidy := ""
 	if len(rRoles) == 0 {
 		rRolesTidy = "No Roles"
@@ -597,7 +592,7 @@ func (c *Commands) handleUserInfo(s *discordgo.Session, m *discordgo.MessageCrea
 	msg += "**User Name**: `" + rUsername + "`\n"
 	msg += "**User Nick**: `" + rUserNick + "`\n"
 	msg += "**User Discrim**: `#" + rUserDiscrim + "`\n"
-	msg += "**User Join**:  `" + rJoinTimeP.String() + "`\n"
+	msg += "**User Join**:  `" + rJoinTime.String() + "`\n"
 	msg += "**User Roles**: " + rRolesTidy + "\n"
 
 	embedData := models.CustomEmbed{
@@ -650,7 +645,7 @@ func (c *Commands) handleServerInfo(s *discordgo.Session, m *discordgo.MessageCr
 	createdMSecs := ((iID / 4194304) + 1420070400000) / 1000
 	sCreatedAt := time.Unix(int64(createdMSecs), 0).Format(time.RFC1123)
 
-	sIconURL := g.IconURL()
+	sIconURL := g.IconURL("256")
 
 	user := m.Author
 
