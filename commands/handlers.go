@@ -52,6 +52,18 @@ func (c *Commands) RegisterHandlers() {
 	c.RegisterCommand("intocm", "Convert Inches to Centimeters", false, c.handleInchToCentimeter)
 	c.RegisterCommand("google4u", "Displays a letmegooglethat link", false, c.handleGoogle4U)
 
+	//Product Helpers
+	c.RegisterCommand("askdocs", "Ask docs.hak5.org a question", false, c.handleAskDocs)
+	c.RegisterCommand("docs", "Link Docs", false, c.handleDocs)
+	c.RegisterCommand("github", "Link Github", false, c.handleGithub)
+	c.RegisterCommand("payloads", "Link Github + PayloadHub", false, c.handlePayloads)
+	c.RegisterCommand("payloadhub", "Link PayloadHub", false, c.handlePayloadHub)
+	c.RegisterCommand("support", "Link Support", false, c.handleSupport)
+	c.RegisterCommand("shop", "Link Shop", false, c.handleShop)
+	c.RegisterCommand("buy", "Link Shop", false, c.handleShop)
+	c.RegisterCommand("invite", "Link direct channel invite", false, c.handleInvite)
+	// TODO payloadstudio view
+
 	// Admin Commands
 	c.RegisterCommand("ping", "Ping Scuzzy", true, c.handlePing)
 	c.RegisterCommand("rules", "Display the Server Rules", true, c.handleRules)
@@ -68,6 +80,8 @@ func (c *Commands) RegisterHandlers() {
 	c.RegisterCommand("saveconfig", "Save Configuration to Disk", true, c.handleSaveConfig)
 	c.RegisterCommand("reloadconfig", "Reload Configuration", true, c.handleReloadConfig)
 	c.RegisterCommand("addrole", "Add a joinable role", true, c.handleAddCustomRole)
+	c.RegisterCommand("moveto", "Move a users message to another channel (deletes originals)", true, c.handleMoveto)
+	c.RegisterCommand("bringto", "Copy a users message to another channel (keeps originals) ", true, c.handleBringto)
 }
 
 func (c *Commands) ProcessCommand(s *discordgo.Session, m *discordgo.MessageCreate) error {
