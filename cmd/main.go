@@ -63,6 +63,9 @@ func main() {
 		log.Fatal("[!] Error: " + err.Error())
 	}
 
+	// Message Content is a privileged intent; it must also be enabled in the Discord Developer Portal
+	bot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentMessageContent
+
     // Enable Reconnect
     bot.ShouldReconnectOnError = true
 

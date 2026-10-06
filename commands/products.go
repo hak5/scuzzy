@@ -14,9 +14,15 @@ import (
 // TODO for use in command arguments
 /* Match on one two or three word arguments*/
 func aliasMatch(product models.Product, args []string) bool {
-	return strings.Contains(strings.Join(product.Aliases[:], " "), args[1]) ||
-		strings.Contains(strings.Join(product.Aliases, " "), strings.Join(args[1:3], " ")) ||
-		strings.Contains(strings.Join(product.Aliases, " "), strings.Join(args[1:4], " "))
+	for n := 1; n <= 3 && n < len(args); n++ {
+		phrase := strings.ToLower(strings.Join(args[1:n+1], " "))
+		for _, alias := range product.Aliases {
+			if strings.ToLower(alias) == phrase {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (c *Commands) matchAlias(args []string) models.Product {

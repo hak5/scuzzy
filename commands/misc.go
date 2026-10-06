@@ -27,14 +27,14 @@ func (c *Commands) handleSetConfig(s *discordgo.Session, m *discordgo.MessageCre
 	configKey := configArgs[1]
 	configVal := configArgs[2]
 
-	rt := reflect.TypeOf(c.Config)
+	rt := reflect.TypeOf(*c.Config)
 	for i := 0; i < rt.NumField(); i++ {
 		x := rt.Field(i)
 		tagVal := strings.Split(x.Tag.Get("json"), ",")[0]
 		tagName := x.Name
 
 		if tagVal == configKey {
-			prop := reflect.ValueOf(&c.Config).Elem().FieldByName(tagName)
+			prop := reflect.ValueOf(c.Config).Elem().FieldByName(tagName)
 
 			switch prop.Interface().(type) {
 			case string:

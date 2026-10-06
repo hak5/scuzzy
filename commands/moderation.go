@@ -166,11 +166,11 @@ func (c *Commands) handleKickUser(s *discordgo.Session, m *discordgo.MessageCrea
 		err        error
 	)
 
-	args := strings.Split(m.Content, " ")
+	args := strings.Fields(m.Content)
 	if len(args) < 2 {
 		return errors.New("You must specify a user to kick.")
 	}
-	if len(args) == 3 {
+	if len(args) > 2 {
 		kickReason = strings.Join(args[2:], " ")
 	}
 
@@ -209,11 +209,11 @@ func (c *Commands) handleBanUser(s *discordgo.Session, m *discordgo.MessageCreat
 		err       error
 	)
 
-	args := strings.Split(m.Content, " ")
+	args := strings.Fields(m.Content)
 	if len(args) < 2 {
 		return errors.New("You must specify a user to ban.")
 	}
-	if len(args) == 3 {
+	if len(args) > 2 {
 		banReason = strings.Join(args[2:], " ")
 	}
 

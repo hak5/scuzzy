@@ -37,7 +37,20 @@ type Configuration struct {
 
 	IgnoredUsers []string `json:"ignored_users"`
 
-	LoggingChannel string `json:"logging_channel"`
+	LoggingChannel   string `json:"logging_channel"`
+	ModeratorChannel string `json:"moderator_channel"`
+	ModeratorRoleID  string `json:"moderator_role_id"`
+
+	// Auto Moderation. The *_enforce flags default to false, which is dry-run
+	// mode: actions are reported to the moderator channel but not taken.
+	SpamDetection             bool   `json:"spam_detection"`
+	SpamEnforce               bool   `json:"spam_enforce"`
+	SpamWindowSeconds         int    `json:"spam_window_seconds"`
+	SpamDuplicateThreshold    int    `json:"spam_duplicate_threshold"`
+	SpamCrossChannelThreshold int    `json:"spam_cross_channel_threshold"`
+	SpamTimeoutMinutes        int    `json:"spam_timeout_minutes"`
+	FreeBansChannel           string `json:"free_bans_channel"`
+	FreeBansEnforce           bool   `json:"free_bans_enforce"`
 
 	ConfigPath string
 

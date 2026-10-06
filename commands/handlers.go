@@ -26,6 +26,8 @@ func (c *Commands) RegisterHandlers() {
 	c.ScuzzyCommands = make(map[string]ScuzzyCommand)
 	c.ScuzzyCommandsByIndex = make(map[int]ScuzzyCommand)
 
+	c.startAutoMod()
+
 	// Misc Commands
 	c.RegisterCommand("help", "Show Help Text", false, c.handleHelp)
 	c.RegisterCommand("info", "Show Bot Info", false, c.handleInfo)
@@ -203,8 +205,11 @@ func (c *Commands) ProcessUserJoin(s *discordgo.Session, m *discordgo.GuildMembe
 func (c *Commands) ProcessMessage(s *discordgo.Session, m interface{}) {
 	switch m.(type) {
 	case *discordgo.MessageCreate:
+		// Auto moderation (honeypot channel, spam detection)
+		if c.ProcessAutoMod(s, m.(*discordgo.MessageCreate).Message) {
+			break
+		}
 		// Pass Messages to the command processor
-		track(m.(*discordgo.MessageCreate).Message)
 		err := c.ProcessCommand(s, m.(*discordgo.MessageCreate))
 		if err != nil {
 			log.Println("[!] Error: " + err.Error())

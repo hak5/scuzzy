@@ -22,4 +22,6 @@ type Commands struct {
 	Config                *models.Configuration
 	ScuzzyCommands        map[string]ScuzzyCommand
 	ScuzzyCommandsByIndex map[int]ScuzzyCommand
+
+	spamTracker *SpamTracker
 }
