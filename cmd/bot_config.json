@@ -30,8 +30,8 @@
     "ignored_users": [],
 
     "logging_channel": "714369335254188053",
-    "moderator_channel": "",
-    "moderator_role_id": "",
+    "moderator_channel": "817015480199282778",
+    "moderator_role_id": "759476875851595796",
 
     "spam_detection": true,
     "spam_enforce": false,
@@ -40,6 +40,6 @@
     "spam_cross_channel_threshold": 3,
     "spam_timeout_minutes": 60,
 
-    "free_bans_channel": "",
+    "free_bans_channel": "1556850412370272437",
     "free_bans_enforce": false
 }
