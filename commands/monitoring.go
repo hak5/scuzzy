@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"strconv"
@@ -33,18 +36,32 @@ const (
 	SpamStraggler             // another copy from a burst already flagged; just clean it up
 )
 
-// SpamTracker records recent messages per author+content so repeats can be detected.
+// SpamTracker records recent messages per author+fingerprint so repeats can be detected.
+// Only keyed hashes of message content are kept, never the content itself.
 type SpamTracker struct {
 	mu       sync.Mutex
+	key      []byte // random per process, so fingerprints can't be reversed by guessing or outlive a restart
 	messages map[string]*models.TrackedMessage
 	banned   map[string]time.Time // users already handled by the free-bans channel
 }
 
 func NewSpamTracker() *SpamTracker {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		log.Fatal("[!] Error (Spam Tracker Key): " + err.Error())
+	}
 	return &SpamTracker{
+		key:      key,
 		messages: make(map[string]*models.TrackedMessage),
 		banned:   make(map[string]time.Time),
 	}
+}
+
+// Fingerprint returns an HMAC-SHA256 of the message text, used in place of the text itself.
+func (t *SpamTracker) Fingerprint(text string) string {
+	mac := hmac.New(sha256.New, t.key)
+	mac.Write([]byte(text))
+	return string(mac.Sum(nil))
 }
 
 // Record adds a sighting and reports whether it crosses either spam threshold.
@@ -57,7 +74,7 @@ func (t *SpamTracker) Record(authorID, fingerprint string, inst models.TrackedIn
 	key := authorID + "\x00" + fingerprint
 	tm, ok := t.messages[key]
 	if !ok {
-		tm = &models.TrackedMessage{AuthorID: authorID, MessageContent: fingerprint}
+		tm = &models.TrackedMessage{AuthorID: authorID, Fingerprint: fingerprint}
 		t.messages[key] = tm
 	}
 
@@ -134,9 +151,9 @@ func pruneInstances(instances []models.TrackedInstance, cutoff time.Time) []mode
 	return kept
 }
 
-// messageFingerprint identifies "the same message", including attachment-only posts.
+// messageText identifies "the same message", including attachment-only posts.
 // Returns an empty string for messages that shouldn't be tracked.
-func messageFingerprint(m *discordgo.Message) string {
+func messageText(m *discordgo.Message) string {
 	var sb strings.Builder
 	sb.WriteString(strings.TrimSpace(m.Content))
 	for _, a := range m.Attachments {
@@ -250,7 +267,7 @@ func (c *Commands) processFreeBans(s *discordgo.Session, m *discordgo.Message) b
 		}
 	}
 
-	c.reportAutoMod(s, "Free Bans", reason, action, c.Config.FreeBansEnforce, false, result, m.Author, []string{m.ChannelID}, messageFingerprint(m))
+	c.reportAutoMod(s, "Free Bans", reason, action, c.Config.FreeBansEnforce, false, result, m.Author, []string{m.ChannelID}, messageText(m))
 	return true
 }
 
@@ -259,10 +276,11 @@ func (c *Commands) processSpam(s *discordgo.Session, m *discordgo.Message) bool 
 		return false
 	}
 
-	fingerprint := messageFingerprint(m)
-	if fingerprint == "" {
+	text := messageText(m)
+	if text == "" {
 		return false
 	}
+	fingerprint := c.spamTracker.Fingerprint(text)
 
 	inst := models.TrackedInstance{ChannelID: m.ChannelID, MessageID: m.ID, SeenAt: time.Now()}
 	verdict, reason, hits := c.spamTracker.Record(m.Author.ID, fingerprint, inst, c.spamWindow(), c.spamDuplicateThreshold(), c.spamCrossChannelThreshold())
@@ -303,7 +321,7 @@ func (c *Commands) processSpam(s *discordgo.Session, m *discordgo.Message) bool 
 	}
 
 	// Ping moderators once the user is actually timed out so they can decide on a ban.
-	c.reportAutoMod(s, "Spam Detected", reason, action, c.Config.SpamEnforce, c.Config.SpamEnforce, strings.Join(errs, "\n"), m.Author, channels, fingerprint)
+	c.reportAutoMod(s, "Spam Detected", reason, action, c.Config.SpamEnforce, c.Config.SpamEnforce, strings.Join(errs, "\n"), m.Author, channels, text)
 	return true
 }
 

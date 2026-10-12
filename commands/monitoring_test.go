@@ -2,6 +2,7 @@ package commands
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -117,5 +118,22 @@ func TestSweep(t *testing.T) {
 	tr.Sweep(now.Add(40*time.Second), testWindow)
 	if len(tr.messages) != 0 {
 		t.Fatalf("sweep left %d messages", len(tr.messages))
+	}
+}
+
+func TestFingerprint(t *testing.T) {
+	tr := NewSpamTracker()
+	a, b := tr.Fingerprint("buy nitro"), tr.Fingerprint("buy nitro")
+	if a != b {
+		t.Fatal("same text gave different fingerprints")
+	}
+	if a == tr.Fingerprint("buy nitr0") {
+		t.Fatal("different text gave the same fingerprint")
+	}
+	if strings.Contains(a, "nitro") {
+		t.Fatal("fingerprint contains plaintext")
+	}
+	if a == NewSpamTracker().Fingerprint("buy nitro") {
+		t.Fatal("fingerprint not keyed per tracker")
 	}
 }
