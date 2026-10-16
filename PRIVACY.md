@@ -19,10 +19,10 @@ Scuzzy only sees what Discord sends it from the Hak5 server. It does not collect
 | Message text and attachment file names and sizes | Every message posted in a channel Scuzzy can read |
 | Your Discord user ID, username and display name | With every message and event Scuzzy receives |
 | Channel and message IDs, and when a message was sent | With every message |
-| Your roles and nickname, and when you joined the server | When you or someone else runs a command such as `.userinfo` or `.color`, and to check whether you are staff |
+| Your roles and nickname, and when you joined the server | When you or someone else runs a command such as `/userinfo` or `/color`, and to check whether you are staff |
 | The text and author of a deleted message | When a recently sent message is deleted |
 | The fact that you joined the server | When you join |
-| The question you ask | When you use the `.askdocs` command |
+| The question you ask | When you use the `/askdocs` command |
 
 Scuzzy does not read your direct messages with other people, your messages in other servers, voice channels, your email address, or payment information. It ignores direct messages sent to it.
 
@@ -32,11 +32,11 @@ Scuzzy uses this information only to run and moderate the Hak5 server:
 
 - **Spam detection.** Scuzzy compares a one-way, keyed fingerprint of each new message with fingerprints of your other recent messages. It does not store the message text for this. If the same message is posted repeatedly in one channel, or across several channels within a short window (30 seconds by default), Scuzzy may delete the copies, time you out, and alert moderators. Staff messages are not checked.
 - **Honeypot channel.** Posting in a designated trap channel may result in an automatic ban and removal of your recent messages. These actions are reported to moderators.
-- **Commands.** Scuzzy reads messages that start with `.` to respond to commands, such as setting a color role, joining a role, showing user or server info, or unit conversions.
-- **Moderation tools.** Staff use Scuzzy to kick, ban, purge, move or copy messages, and set slow mode.
+- **Commands.** Scuzzy responds to slash commands, such as setting a color role, joining a role, showing user or server info, or unit conversions.
+- **Moderation tools.** Staff use Scuzzy to kick, ban, purge, and set slow mode. When staff move or copy a message to another channel, Discord sends Scuzzy that message's text and author so it can be reposted.
 - **Deleted message log.** When a message is deleted, Scuzzy posts its author, channel and text to a staff-only log channel so moderators can review abuse.
 - **Welcome.** When you join, Scuzzy sends you a welcome direct message and may give you default roles.
-- **Docs answers.** The `.askdocs` command sends your question to the Hak5 documentation search, powered by GitBook, and posts the AI-generated answer in the channel.
+- **Docs answers.** The `/askdocs` command sends your question to the Hak5 documentation search, powered by GitBook, and posts the AI-generated answer in the channel.
 
 Scuzzy does not use your information for advertising, profiling, or training AI models.
 
@@ -60,7 +60,7 @@ We do not sell or rent information that Scuzzy processes. It goes only to:
 
 - **Hak5 moderators and administrators**, through staff-only channels, to review spam, abuse, and rule violations.
 - **Discord**, which delivers every message and action Scuzzy sends or receives.
-- **GitBook**, which receives the text of questions you ask with `.askdocs`, so it can search Hak5's documentation. Your Discord identity is not sent with the question.
+- **GitBook**, which receives the text of questions you ask with `/askdocs`, so it can search Hak5's documentation. Your Discord identity is not sent with the question.
 - **Others where required by law**, or to protect the safety of the community, as described in the [Hak5 Privacy Policy](https://shop.hak5.org/pages/privacy).
 
 ## Your choices

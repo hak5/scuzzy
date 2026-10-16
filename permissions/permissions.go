@@ -3,7 +3,6 @@ package permissions
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/foxtrot/scuzzy/models"
-	"strings"
 )
 
 type AdminRole struct {
@@ -73,11 +72,7 @@ func (p *Permissions) CheckIgnoredUser(m *discordgo.User) bool {
 	return false
 }
 
-func (p *Permissions) CheckCommandRestrictions(m *discordgo.MessageCreate) bool {
-	cName := strings.Split(m.Content, " ")[0]
-	cName = strings.Replace(cName, p.Config.CommandKey, "", 1)
-	cChanID := m.ChannelID
-
+func (p *Permissions) CheckCommandRestrictions(cName string, cChanID string) bool {
 	for _, cR := range p.CommandRestrictions {
 		if cName == cR.Command {
 			for _, cID := range cR.Channels {

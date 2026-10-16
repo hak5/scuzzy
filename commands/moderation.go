@@ -6,128 +6,69 @@ import (
 	"github.com/foxtrot/scuzzy/actions"
 	"strconv"
 	"strings"
-	"time"
 )
 
-func (c *Commands) handleSetSlowmode(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	slowmodeSplit := strings.Split(m.Content, " ")
-	if len(slowmodeSplit) < 2 {
-		return errors.New("You must supply at least an amount of time")
-	}
-
-	slowmodeTimeStr := slowmodeSplit[1]
-	slowModeTime, err := strconv.Atoi(slowmodeTimeStr)
-	if err != nil {
-		return err
-	}
-
-	if len(slowmodeSplit) == 3 {
-		if slowmodeSplit[2] == "all" {
-			channels, err := s.GuildChannels(c.Config.GuildID)
-			if err != nil {
-				return err
-			}
-
-			for _, channel := range channels {
-				currPos := channel.Position
-				s.ChannelEditComplex(channel.ID, &discordgo.ChannelEdit{
-					Position:         &currPos,
-					RateLimitPerUser: &slowModeTime,
-				})
-			}
-		}
-	} else {
-		currChan, err := s.Channel(m.ChannelID)
+func (c *Commands) setSlowmode(s *discordgo.Session, channelID string, all bool, secs int) error {
+	if all {
+		channels, err := s.GuildChannels(c.Config.GuildID)
 		if err != nil {
 			return err
 		}
 
-		currPos := currChan.Position
-		_, err = s.ChannelEditComplex(m.ChannelID, &discordgo.ChannelEdit{
-			Position:         &currPos,
-			RateLimitPerUser: &slowModeTime,
-		})
-		if err != nil {
-			return err
+		for _, channel := range channels {
+			currPos := channel.Position
+			s.ChannelEditComplex(channel.ID, &discordgo.ChannelEdit{
+				Position:         &currPos,
+				RateLimitPerUser: &secs,
+			})
 		}
-	}
-
-	msg := c.CreateDefinedEmbed("Slow Mode", "Successfully set Slow Mode to `"+slowmodeTimeStr+"`.", "success", m.Author)
-	_, err = s.ChannelMessageSendEmbed(m.ChannelID, msg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Commands) handleUnsetSlowmode(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	slowmodeSplit := strings.Split(m.Content, " ")
-
-	secs := 0
-
-	if len(slowmodeSplit) == 2 {
-		if slowmodeSplit[1] == "all" {
-			channels, err := s.GuildChannels(c.Config.GuildID)
-			if err != nil {
-				return err
-			}
-
-			for _, channel := range channels {
-				currPos := channel.Position
-				s.ChannelEditComplex(channel.ID, &discordgo.ChannelEdit{
-					Position:         &currPos,
-					RateLimitPerUser: &secs,
-				})
-			}
-		}
-	} else {
-		currChan, err := s.Channel(m.ChannelID)
-		if err != nil {
-			return err
-		}
-
-		currPos := currChan.Position
-		_, err = s.ChannelEditComplex(m.ChannelID, &discordgo.ChannelEdit{
-			Position:         &currPos,
-			RateLimitPerUser: &secs,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	msg := c.CreateDefinedEmbed("Slow Mode", "Successfully unset Slow Mode", "success", m.Author)
-	_, err := s.ChannelMessageSendEmbed(m.ChannelID, msg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Commands) handlePurgeChannel(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	purgeSplit := strings.SplitN(m.Content, " ", 2)
-	if len(purgeSplit) < 2 {
-		return errors.New("No message count supplied")
-	}
-
-	msgCount, err := strconv.Atoi(purgeSplit[1])
-	if err != nil {
 		return nil
 	}
 
-	if msgCount > 100 {
-		return errors.New("You may only purge upto 100 messages at a time.")
-	}
-
-	chanMsgs, err := s.ChannelMessages(m.ChannelID, msgCount, "", "", "")
+	currChan, err := s.Channel(channelID)
 	if err != nil {
 		return err
 	}
 
-	msg := c.CreateDefinedEmbed("Purge Channel", "Purging `"+purgeSplit[1]+"` messages.", "", m.Author)
-	r, err := s.ChannelMessageSendEmbed(m.ChannelID, msg)
+	currPos := currChan.Position
+	_, err = s.ChannelEditComplex(channelID, &discordgo.ChannelEdit{
+		Position:         &currPos,
+		RateLimitPerUser: &secs,
+	})
+	return err
+}
+
+func (c *Commands) handleSetSlowmode(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	opts := options(i)
+	slowModeTime := int(opts["seconds"].IntValue())
+	all := opts["all"] != nil && opts["all"].BoolValue()
+
+	err := c.setSlowmode(s, i.ChannelID, all, slowModeTime)
+	if err != nil {
+		return err
+	}
+
+	msg := c.CreateDefinedEmbed("Slow Mode", "Successfully set Slow Mode to `"+strconv.Itoa(slowModeTime)+"`.", "success", i.Member.User)
+	return c.replyEmbed(s, i, msg)
+}
+
+func (c *Commands) handleUnsetSlowmode(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	opts := options(i)
+	all := opts["all"] != nil && opts["all"].BoolValue()
+
+	err := c.setSlowmode(s, i.ChannelID, all, 0)
+	if err != nil {
+		return err
+	}
+
+	msg := c.CreateDefinedEmbed("Slow Mode", "Successfully unset Slow Mode", "success", i.Member.User)
+	return c.replyEmbed(s, i, msg)
+}
+
+func (c *Commands) handlePurgeChannel(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	msgCount := int(options(i)["count"].IntValue())
+
+	chanMsgs, err := s.ChannelMessages(i.ChannelID, msgCount, "", "", "")
 	if err != nil {
 		return err
 	}
@@ -137,48 +78,24 @@ func (c *Commands) handlePurgeChannel(s *discordgo.Session, m *discordgo.Message
 		delMsgs = append(delMsgs, v.ID)
 	}
 
-	err = s.ChannelMessagesBulkDelete(m.ChannelID, delMsgs)
+	err = deleteMessages(s, i.ChannelID, delMsgs)
 	if err != nil {
 		return err
 	}
 
-	err = s.ChannelMessageDelete(m.ChannelID, r.ID)
-	msg = c.CreateDefinedEmbed("Purge Channel", "Purged `"+purgeSplit[1]+"` messages!", "success", m.Author)
-	msgS, err := s.ChannelMessageSendEmbed(m.ChannelID, msg)
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(time.Second * 10)
-
-	err = s.ChannelMessageDelete(m.ChannelID, msgS.ID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	msg := c.CreateDefinedEmbed("Purge Channel", "Purged `"+strconv.Itoa(len(delMsgs))+"` messages!", "success", i.Member.User)
+	return c.replyEmbed(s, i, msg)
 }
 
-func (c *Commands) handleKickUser(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	var (
-		mHandle    *discordgo.Member
-		kickReason string
-		err        error
-	)
+func (c *Commands) handleKickUser(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	opts := options(i)
 
-	args := strings.Fields(m.Content)
-	if len(args) < 2 {
-		return errors.New("You must specify a user to kick.")
-	}
-	if len(args) > 2 {
-		kickReason = strings.Join(args[2:], " ")
+	kickReason := ""
+	if o, ok := opts["reason"]; ok {
+		kickReason = o.StringValue()
 	}
 
-	member := args[1]
-	idStr := strings.ReplaceAll(member, "<@!", "")
-	idStr = strings.ReplaceAll(idStr, "<@", "")
-	idStr = strings.ReplaceAll(idStr, ">", "")
-	mHandle, err = s.GuildMember(c.Config.GuildID, idStr)
+	mHandle, err := s.GuildMember(c.Config.GuildID, opts["user"].UserValue(nil).ID)
 	if err != nil {
 		return err
 	}
@@ -193,40 +110,25 @@ func (c *Commands) handleKickUser(s *discordgo.Session, m *discordgo.MessageCrea
 		msg += "Reason: `" + kickReason + "`\n"
 	}
 
-	embed := c.CreateDefinedEmbed("Kick User", msg, "success", m.Author)
-	_, err = s.ChannelMessageSendEmbed(m.ChannelID, embed)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	embed := c.CreateDefinedEmbed("Kick User", msg, "success", i.Member.User)
+	return c.replyEmbed(s, i, embed)
 }
 
-func (c *Commands) handleBanUser(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	var (
-		mHandle   *discordgo.User
-		banReason string
-		err       error
-	)
+func (c *Commands) handleBanUser(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	opts := options(i)
 
-	args := strings.Fields(m.Content)
-	if len(args) < 2 {
-		return errors.New("You must specify a user to ban.")
-	}
-	if len(args) > 2 {
-		banReason = strings.Join(args[2:], " ")
+	banReason := ""
+	if o, ok := opts["reason"]; ok {
+		banReason = o.StringValue()
 	}
 
-	member := args[1]
-	idStr := strings.ReplaceAll(member, "<@!", "")
-	idStr = strings.ReplaceAll(idStr, "<@", "")
-	idStr = strings.ReplaceAll(idStr, ">", "")
-	mHandle, err = s.User(idStr)
-	if err != nil {
-		return err
+	// Members who already left can still be banned by ID
+	mHandle := opts["user"].UserValue(s)
+	if mHandle == nil {
+		return errors.New("Unknown user.")
 	}
 
-	err = actions.BanUser(s, c.Config.GuildID, mHandle.ID, banReason)
+	err := actions.BanUser(s, c.Config.GuildID, mHandle.ID, banReason)
 	if err != nil {
 		return err
 	}
@@ -236,160 +138,154 @@ func (c *Commands) handleBanUser(s *discordgo.Session, m *discordgo.MessageCreat
 		msg += "Reason: `" + banReason + "`\n"
 	}
 
-	embed := c.CreateDefinedEmbed("Ban User", msg, "success", m.Author)
-	_, err = s.ChannelMessageSendEmbed(m.ChannelID, embed)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	embed := c.CreateDefinedEmbed("Ban User", msg, "success", i.Member.User)
+	return c.replyEmbed(s, i, embed)
 }
 
-func (c *Commands) handleIgnoreUser(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	ignArgs := strings.Split(m.Content, " ")
-	if len(ignArgs) < 2 {
-		return errors.New("You did not specify a user.")
-	}
-
-	member := ignArgs[1]
-	idStr := strings.ReplaceAll(member, "<@!", "")
-	idStr = strings.ReplaceAll(idStr, "<@", "")
-	idStr = strings.ReplaceAll(idStr, ">", "")
+func (c *Commands) handleIgnoreUser(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	idStr := options(i)["user"].UserValue(nil).ID
 
 	c.Config.IgnoredUsers = append(c.Config.IgnoredUsers, idStr)
 
-	eMsg := c.CreateDefinedEmbed("Ignore User", "<@!"+idStr+"> is now being ignored.", "success", m.Author)
-	_, err := s.ChannelMessageSendEmbed(m.ChannelID, eMsg)
+	err := c.saveConfig()
 	if err != nil {
 		return err
 	}
 
-	err = c.handleSaveConfig(s, m)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	eMsg := c.CreateDefinedEmbed("Ignore User", "<@!"+idStr+"> is now being ignored.", "success", i.Member.User)
+	return c.replyEmbed(s, i, eMsg)
 }
 
-func (c *Commands) handleUnIgnoreUser(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	ignArgs := strings.Split(m.Content, " ")
-	if len(ignArgs) < 2 {
-		return errors.New("You did not specify a user.")
-	}
-
-	member := ignArgs[1]
-	idStr := strings.ReplaceAll(member, "<@!", "")
-	idStr = strings.ReplaceAll(idStr, "<@", "")
-	idStr = strings.ReplaceAll(idStr, ">", "")
+func (c *Commands) handleUnIgnoreUser(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	idStr := options(i)["user"].UserValue(nil).ID
 
 	for k, v := range c.Config.IgnoredUsers {
 		if v == idStr {
 			c.Config.IgnoredUsers[k] = c.Config.IgnoredUsers[len(c.Config.IgnoredUsers)-1]
 			c.Config.IgnoredUsers = c.Config.IgnoredUsers[:len(c.Config.IgnoredUsers)-1]
-		}
-	}
-
-	eMsg := c.CreateDefinedEmbed("Unignore User", "<@!"+idStr+"> is not being ignored.", "success", m.Author)
-	_, err := s.ChannelMessageSendEmbed(m.ChannelID, eMsg)
-	if err != nil {
-		return err
-	}
-
-	err = c.handleSaveConfig(s, m)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Commands) handleMoveto(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	args := strings.Split(m.Content, " ")
-	if len(args) < 2 {
-		return errors.New("missing arg")
-	}
-	input := m.Content[strings.Index(m.Content, " "):len(m.Content)]
-
-	repliedTo, err := s.ChannelMessage(m.ChannelID, m.MessageReference.MessageID)
-	if err != nil {
-		return errors.New("error getting target message")
-	}
-
-	moveToId := ""
-	channels, _ := s.GuildChannels(c.Config.GuildID)
-	for _, c := range channels {
-		if c.Type != discordgo.ChannelTypeGuildText {
-			continue
-		}
-		if strings.Contains(input, c.ID) {
-			moveToId = c.ID
 			break
 		}
 	}
 
-	if moveToId == "" {
-		return errors.New("failed to link channels")
+	err := c.saveConfig()
+	if err != nil {
+		return err
 	}
 
-	_, err = s.ChannelMessageSend(m.ChannelID, "Moderator <@"+m.Author.ID+"> moved <@"+repliedTo.Author.ID+">'s message to <#"+moveToId+"> to continue the conversation there")
-	if err != nil {
-		return errors.New("error announcing move")
-	}
-
-	_, err = s.ChannelMessageSend(moveToId, "Moderator <@"+m.Author.ID+"> moved this message from <#"+m.ChannelID+">\n\nOriginal message:\n\n <@"+repliedTo.Author.ID+">: "+repliedTo.Content)
-	if err != nil {
-		return errors.New("error moving message")
-	}
-
-	err = s.ChannelMessageDelete(m.ChannelID, m.ID)
-	if err != nil {
-		return errors.New("error (re)moving command message")
-	}
-
-	err = s.ChannelMessageDelete(m.ChannelID, m.MessageReference.MessageID)
-	if err != nil {
-		return errors.New("error (re)moving message")
-	}
-	return nil
+	eMsg := c.CreateDefinedEmbed("Unignore User", "<@!"+idStr+"> is not being ignored.", "success", i.Member.User)
+	return c.replyEmbed(s, i, eMsg)
 }
 
-func (c *Commands) handleBringto(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	args := strings.Split(m.Content, " ")
-	if len(args) < 2 {
-		return errors.New("missing arg")
-	}
-	input := m.Content[strings.Index(m.Content, " "):len(m.Content)]
+func (c *Commands) handleMoveto(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	return c.promptMoveChannel(s, i, "move")
+}
 
-	repliedTo, err := s.ChannelMessage(m.ChannelID, m.MessageReference.MessageID)
-	if err != nil {
+func (c *Commands) handleBringto(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	return c.promptMoveChannel(s, i, "copy")
+}
+
+// promptMoveChannel answers a "Move message"/"Copy message" right-click with a private channel picker.
+// Discord includes the target message's text in message command interactions, so this works without
+// the Message Content intent. The text is carried in the picker's own embed rather than stored by the bot.
+func (c *Commands) promptMoveChannel(s *discordgo.Session, i *discordgo.InteractionCreate, action string) error {
+	data := i.ApplicationCommandData()
+	target, ok := data.Resolved.Messages[data.TargetID]
+	if !ok {
 		return errors.New("error getting target message")
 	}
 
-	moveToId := ""
-	channels, _ := s.GuildChannels(c.Config.GuildID)
-	for _, c := range channels {
-		if c.Type != discordgo.ChannelTypeGuildText {
-			continue
-		}
-		if strings.Contains(input, c.ID) {
-			moveToId = c.ID
-			break
-		}
+	text := target.Content
+	for _, a := range target.Attachments {
+		text += "\n" + a.URL
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return errors.New("This message has no text to " + action + ".")
 	}
 
-	if moveToId == "" {
-		return errors.New("failed to link channels")
+	preview := &discordgo.MessageEmbed{
+		Author: &discordgo.MessageEmbedAuthor{
+			Name:    target.Author.Username,
+			IconURL: target.Author.AvatarURL("64"),
+		},
+		Description: text,
 	}
 
-	_, err = s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+"> copied <@"+repliedTo.Author.ID+">'s message to <#"+moveToId+"> to continue the conversation there.")
+	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Where should this message be " + map[string]string{"move": "moved", "copy": "copied"}[action] + " to?",
+			Embeds:  []*discordgo.MessageEmbed{preview},
+			Flags:   discordgo.MessageFlagsEphemeral,
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+					discordgo.SelectMenu{
+						MenuType:     discordgo.ChannelSelectMenu,
+						CustomID:     action + ":" + target.ID + ":" + target.Author.ID,
+						Placeholder:  "Pick a channel",
+						ChannelTypes: []discordgo.ChannelType{discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews},
+					},
+				}},
+			},
+		},
+	})
+}
+
+// handleMoveSelect finishes a move/copy once a moderator picks the destination channel.
+func (c *Commands) handleMoveSelect(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	data := i.MessageComponentData()
+
+	parts := strings.Split(data.CustomID, ":")
+	if len(parts) != 3 || (parts[0] != "move" && parts[0] != "copy") || len(data.Values) != 1 {
+		return errors.New("unknown action")
+	}
+	action, messageID, authorID := parts[0], parts[1], parts[2]
+	moveToId := data.Values[0]
+	modID := i.Member.User.ID
+
+	if len(i.Message.Embeds) == 0 {
+		return errors.New("error getting target message")
+	}
+	original := i.Message.Embeds[0]
+
+	var announce, header string
+	if action == "move" {
+		announce = "Moderator <@" + modID + "> moved <@" + authorID + ">'s message to <#" + moveToId + "> to continue the conversation there"
+		header = "Moderator <@" + modID + "> moved this message from <#" + i.ChannelID + ">\n\nOriginal message from <@" + authorID + ">:"
+	} else {
+		announce = "<@" + modID + "> copied <@" + authorID + ">'s message to <#" + moveToId + "> to continue the conversation there."
+		header = "<@" + modID + "> copied this message from <#" + i.ChannelID + ">\n\nOriginal message from <@" + authorID + ">:"
+	}
+
+	_, err := s.ChannelMessageSend(i.ChannelID, announce)
 	if err != nil {
 		return errors.New("error announcing move")
 	}
 
-	_, err = s.ChannelMessageSend(moveToId, "<@"+m.Author.ID+"> copied this message from <#"+m.ChannelID+">\n\nOriginal message:\n\n <@"+repliedTo.Author.ID+">: "+repliedTo.Content)
+	_, err = s.ChannelMessageSendComplex(moveToId, &discordgo.MessageSend{
+		Content: header,
+		Embeds: []*discordgo.MessageEmbed{{
+			Author:      original.Author,
+			Description: original.Description,
+		}},
+	})
 	if err != nil {
 		return errors.New("error moving message")
 	}
-	return nil
+
+	done := "Copied to <#" + moveToId + ">."
+	if action == "move" {
+		err = s.ChannelMessageDelete(i.ChannelID, messageID)
+		if err != nil {
+			return errors.New("error removing original message")
+		}
+		done = "Moved to <#" + moveToId + ">."
+	}
+
+	_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Content:    &done,
+		Embeds:     &[]*discordgo.MessageEmbed{},
+		Components: &[]discordgo.MessageComponent{},
+	})
+	return err
 }

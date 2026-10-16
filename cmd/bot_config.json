@@ -1,6 +1,4 @@
 {
-    "command_key": ".",
-
     "guild_id": "506629366659153951",
 
     "status_text": ".help",
@@ -32,6 +30,8 @@
     "logging_channel": "714369335254188053",
     "moderator_channel": "817015480199282778",
     "moderator_role_id": "759476875851595796",
+
+    "message_content_intent": false,
 
     "spam_detection": true,
     "spam_enforce": false,

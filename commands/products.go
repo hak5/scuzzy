@@ -88,31 +88,21 @@ func (c *Commands) getProductFromChannelID(cid string) models.Product {
 	}
 }
 
-func (c *Commands) handleAskDocs(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	args := strings.Split(m.Content, " ")
+func (c *Commands) handleAskDocs(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	input := options(i)["question"].StringValue()
 
-	if len(args) < 2 {
-		return errors.New("missing question")
-	}
-
-	input := m.Content[strings.Index(m.Content, " "):len(m.Content)]
-
-	model := c.getProductFromChannelID(m.ChannelID)
+	model := c.getProductFromChannelID(i.ChannelID)
 
 	// Default guard
 	if model.SpaceID == models.Default.SpaceID {
-		_, err := s.ChannelMessageSend(m.ChannelID, "AI Search not enabled for this product, but you can still look for yourself here: "+model.Docslink)
-		if err != nil {
-			return err
-		}
-		return nil
+		return c.reply(s, i, "AI Search not enabled for this product, but you can still look for yourself here: "+model.Docslink)
 	}
 
 	pre := "<:thonk:666272807524761620> Asking the"
 	post := "docs..."
 	askEndpoint := models.GITBOOKAPI + model.SpaceID + models.SEARCHENDPOINT
 	searchingIn := pre + " " + model.Emoji + " " + model.ProductName + " " + post
-	_, err := s.ChannelMessageSend(m.ChannelID, searchingIn)
+	err := c.reply(s, i, searchingIn)
 	if err != nil {
 		return err
 	}
@@ -147,7 +137,7 @@ func (c *Commands) handleAskDocs(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 
 	prepend := "<:9999iq:1050238565671514172> AI Generated Response:\n\n"
-	_, err = s.ChannelMessageSend(m.ChannelID, prepend+resp.Answer.Text+"\n\n"+model.Docslink)
+	err = c.reply(s, i, "> "+input+"\n\n"+prepend+resp.Answer.Text+"\n\n"+model.Docslink)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err
@@ -156,9 +146,9 @@ func (c *Commands) handleAskDocs(s *discordgo.Session, m *discordgo.MessageCreat
 	return nil
 }
 
-func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
-	_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" Docs: "+model.Docslink)
+func (c *Commands) handleDocs(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
+	err := c.reply(s, i, model.Emoji+" "+model.ProductName+" Docs: "+model.Docslink)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err
@@ -166,9 +156,9 @@ func (c *Commands) handleDocs(s *discordgo.Session, m *discordgo.MessageCreate) 
 	return nil
 }
 
-func (c *Commands) handleGithub(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
-	_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" Github: "+model.Githublink)
+func (c *Commands) handleGithub(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
+	err := c.reply(s, i, model.Emoji+" "+model.ProductName+" Github: "+model.Githublink)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err
@@ -176,24 +166,10 @@ func (c *Commands) handleGithub(s *discordgo.Session, m *discordgo.MessageCreate
 	return nil
 }
 
-func (c *Commands) handlePayloads(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
-	_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" Github: "+model.Githublink)
-	if err != nil {
-		log.Print("[!] Error writing response: " + err.Error())
-		return err
-	}
-	_, err = s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" PayloadHub: "+model.Payloadslink)
-	if err != nil {
-		log.Print("[!] Error writing response: " + err.Error())
-		return err
-	}
-	return nil
-}
-
-func (c *Commands) handlePayloadHub(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
-	_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" PayloadHub: "+model.Payloadslink)
+func (c *Commands) handlePayloads(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
+	err := c.reply(s, i, model.Emoji+" "+model.ProductName+" Github: "+model.Githublink+"\n"+
+		model.Emoji+" "+model.ProductName+" PayloadHub: "+model.Payloadslink)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err
@@ -201,9 +177,9 @@ func (c *Commands) handlePayloadHub(s *discordgo.Session, m *discordgo.MessageCr
 	return nil
 }
 
-func (c *Commands) handleSupport(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
-	_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" Support: "+model.SupportLink)
+func (c *Commands) handlePayloadHub(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
+	err := c.reply(s, i, model.Emoji+" "+model.ProductName+" PayloadHub: "+model.Payloadslink)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err
@@ -211,16 +187,26 @@ func (c *Commands) handleSupport(s *discordgo.Session, m *discordgo.MessageCreat
 	return nil
 }
 
-func (c *Commands) handleInvite(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
+func (c *Commands) handleSupport(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
+	err := c.reply(s, i, model.Emoji+" "+model.ProductName+" Support: "+model.SupportLink)
+	if err != nil {
+		log.Print("[!] Error writing response: " + err.Error())
+		return err
+	}
+	return nil
+}
+
+func (c *Commands) handleInvite(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
 	if model.InviteLink == models.Default.InviteLink {
-		_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+"Invite Link: "+model.InviteLink)
+		err := c.reply(s, i, model.Emoji+"Invite Link: "+model.InviteLink)
 		if err != nil {
 			log.Print("[!] Error writing response: " + err.Error())
 			return err
 		}
 	} else {
-		_, err := s.ChannelMessageSend(m.ChannelID, model.Emoji+" "+model.ProductName+" Channel Invite Link: "+model.InviteLink)
+		err := c.reply(s, i, model.Emoji+" "+model.ProductName+" Channel Invite Link: "+model.InviteLink)
 		if err != nil {
 			log.Print("[!] Error writing response: " + err.Error())
 			return err
@@ -229,9 +215,9 @@ func (c *Commands) handleInvite(s *discordgo.Session, m *discordgo.MessageCreate
 	return nil
 }
 
-func (c *Commands) handleShop(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	model := c.getProductFromChannelID(m.ChannelID)
-	_, err := s.ChannelMessageSend(m.ChannelID, "Shop "+model.Emoji+" "+model.ProductName+" "+model.Shoplink)
+func (c *Commands) handleShop(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	model := c.getProductFromChannelID(i.ChannelID)
+	err := c.reply(s, i, "Shop "+model.Emoji+" "+model.ProductName+" "+model.Shoplink)
 	if err != nil {
 		log.Print("[!] Error writing response: " + err.Error())
 		return err

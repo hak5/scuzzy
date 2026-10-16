@@ -18,8 +18,6 @@ type CommandRestriction struct {
 }
 
 type Configuration struct {
-	CommandKey string `json:"command_key"`
-
 	GuildID   string `json:"guild_id"`
 	GuildName string `json:"guild_name"`
 
@@ -40,6 +38,11 @@ type Configuration struct {
 	LoggingChannel   string `json:"logging_channel"`
 	ModeratorChannel string `json:"moderator_channel"`
 	ModeratorRoleID  string `json:"moderator_role_id"`
+
+	// Message Content is a privileged intent; enable this only once Discord has approved it for the app,
+	// otherwise the gateway rejects the connection (close 4014). Spam detection and deleted message
+	// logging need it to see message text.
+	MessageContentIntent bool `json:"message_content_intent"`
 
 	// Auto Moderation. The *_enforce flags default to false, which is dry-run
 	// mode: actions are reported to the moderator channel but not taken.

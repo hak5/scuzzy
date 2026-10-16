@@ -6,14 +6,19 @@ import (
 	"github.com/foxtrot/scuzzy/permissions"
 )
 
-type ScuzzyHandler func(session *discordgo.Session, m *discordgo.MessageCreate) error
+type ScuzzyHandler func(session *discordgo.Session, i *discordgo.InteractionCreate) error
 
 type ScuzzyCommand struct {
 	Index       int
 	Name        string
 	Description string
 	AdminOnly   bool
-	Handler     ScuzzyHandler
+	// Ephemeral replies are only visible to the user who ran the command.
+	Ephemeral bool
+	// Type defaults to a slash command. Message commands appear under Apps when right-clicking a message.
+	Type    discordgo.ApplicationCommandType
+	Options []*discordgo.ApplicationCommandOption
+	Handler ScuzzyHandler
 }
 
 type Commands struct {

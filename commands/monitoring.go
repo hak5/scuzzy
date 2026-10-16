@@ -389,7 +389,7 @@ func (c *Commands) reportAutoMod(s *discordgo.Session, title, reason, action str
 		for _, id := range roles {
 			mentions = append(mentions, "<@&"+id+">")
 		}
-		msg.Content = strings.Join(mentions, " ") + " user was auto-timed out for spam. Review and `" + c.Config.CommandKey + "ban " + user.ID + " <reason>` if warranted."
+		msg.Content = strings.Join(mentions, " ") + " user was auto-timed out for spam. Review and `/ban user:" + user.ID + "` if warranted."
 		msg.AllowedMentions.Roles = roles
 	}
 
