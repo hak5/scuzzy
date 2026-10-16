@@ -46,14 +46,22 @@ type Configuration struct {
 
 	// Auto Moderation. The *_enforce flags default to false, which is dry-run
 	// mode: actions are reported to the moderator channel but not taken.
-	SpamDetection             bool   `json:"spam_detection"`
-	SpamEnforce               bool   `json:"spam_enforce"`
-	SpamWindowSeconds         int    `json:"spam_window_seconds"`
-	SpamDuplicateThreshold    int    `json:"spam_duplicate_threshold"`
-	SpamCrossChannelThreshold int    `json:"spam_cross_channel_threshold"`
-	SpamTimeoutMinutes        int    `json:"spam_timeout_minutes"`
-	FreeBansChannel           string `json:"free_bans_channel"`
-	FreeBansEnforce           bool   `json:"free_bans_enforce"`
+	SpamDetection             bool `json:"spam_detection"`
+	SpamEnforce               bool `json:"spam_enforce"`
+	SpamWindowSeconds         int  `json:"spam_window_seconds"`
+	SpamDuplicateThreshold    int  `json:"spam_duplicate_threshold"`
+	SpamCrossChannelThreshold int  `json:"spam_cross_channel_threshold"`
+	SpamTimeoutMinutes        int  `json:"spam_timeout_minutes"`
+
+	// Burst detection flags users posting in many channels within a short window, whatever
+	// the messages say, so it works without message_content_intent. Shares spam_timeout_minutes.
+	BurstDetection        bool `json:"burst_detection"`
+	BurstEnforce          bool `json:"burst_enforce"`
+	BurstWindowSeconds    int  `json:"burst_window_seconds"`
+	BurstChannelThreshold int  `json:"burst_channel_threshold"`
+
+	FreeBansChannel string `json:"free_bans_channel"`
+	FreeBansEnforce bool   `json:"free_bans_enforce"`
 
 	ConfigPath string
 

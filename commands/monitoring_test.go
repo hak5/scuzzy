@@ -137,3 +137,59 @@ func TestFingerprint(t *testing.T) {
 		t.Fatal("fingerprint not keyed per tracker")
 	}
 }
+
+func recordBurst(t *SpamTracker, author, channel string, at time.Time) (SpamVerdict, []models.TrackedInstance) {
+	inst := models.TrackedInstance{ChannelID: channel, MessageID: strconv.FormatInt(at.UnixNano(), 10), SeenAt: at}
+	verdict, _, hits := t.RecordBurst(author, inst, 10*time.Second, 3)
+	return verdict, hits
+}
+
+func TestBurstAcrossChannels(t *testing.T) {
+	tr := NewSpamTracker()
+	now := time.Now()
+	recordBurst(tr, "u1", "c1", now)
+	recordBurst(tr, "u1", "c2", now.Add(time.Second))
+	v, hits := recordBurst(tr, "u1", "c3", now.Add(2*time.Second))
+	if v != SpamFlagged || len(hits) != 3 {
+		t.Fatalf("expected burst flag with 3 hits, got %v %d", v, len(hits))
+	}
+	if v, _ := recordBurst(tr, "u1", "c4", now.Add(3*time.Second)); v != SpamStraggler {
+		t.Fatalf("expected straggler after flag, got %v", v)
+	}
+}
+
+// Chatting quickly in one or two channels is normal and must not be flagged.
+func TestBurstIgnoresBusyChannel(t *testing.T) {
+	tr := NewSpamTracker()
+	now := time.Now()
+	for i := 0; i < 20; i++ {
+		ch := "c1"
+		if i%2 == 0 {
+			ch = "c2"
+		}
+		if v, _ := recordBurst(tr, "u1", ch, now.Add(time.Duration(i)*100*time.Millisecond)); v != SpamClean {
+			t.Fatalf("flagged busy chatter at message %d", i+1)
+		}
+	}
+}
+
+func TestBurstOutsideWindow(t *testing.T) {
+	tr := NewSpamTracker()
+	now := time.Now()
+	for i := 0; i < 6; i++ {
+		if v, _ := recordBurst(tr, "u1", "c"+strconv.Itoa(i), now.Add(time.Duration(i)*6*time.Second)); v != SpamClean {
+			t.Fatalf("slow channel hopping flagged at %d", i)
+		}
+	}
+}
+
+// Burst tracking and content tracking for the same author must not share state.
+func TestBurstSeparateFromContent(t *testing.T) {
+	tr := NewSpamTracker()
+	now := time.Now()
+	record(tr, "u1", "hi", "c1", now)
+	record(tr, "u1", "hi", "c2", now)
+	if v, _ := recordBurst(tr, "u1", "c3", now); v != SpamClean {
+		t.Fatalf("burst counted content sightings, got %v", v)
+	}
+}

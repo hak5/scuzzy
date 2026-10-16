@@ -31,6 +31,7 @@ Scuzzy does not read your direct messages with other people, your messages in ot
 Scuzzy uses this information only to run and moderate the Hak5 server:
 
 - **Spam detection.** Scuzzy compares a one-way, keyed fingerprint of each new message with fingerprints of your other recent messages. It does not store the message text for this. If the same message is posted repeatedly in one channel, or across several channels within a short window (30 seconds by default), Scuzzy may delete the copies, time you out, and alert moderators. Staff messages are not checked.
+- **Channel burst detection.** Scuzzy also flags accounts that post in several channels within a few seconds (3 channels in 10 seconds by default), using only which channels you posted in and when, not what you wrote. It takes the same actions as spam detection.
 - **Honeypot channel.** Posting in a designated trap channel may result in an automatic ban and removal of your recent messages. These actions are reported to moderators.
 - **Commands.** Scuzzy responds to slash commands, such as setting a color role, joining a role, showing user or server info, or unit conversions.
 - **Moderation tools.** Staff use Scuzzy to kick, ban, purge, and set slow mode. When staff move or copy a message to another channel, Discord sends Scuzzy that message's text and author so it can be reposted.

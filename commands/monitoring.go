@@ -20,6 +20,8 @@ const (
 	defaultSpamDuplicateThreshold    = 4
 	defaultSpamCrossChannelThreshold = 3
 	defaultSpamTimeout               = 60 * time.Minute
+	defaultBurstWindow               = 10 * time.Second
+	defaultBurstChannelThreshold     = 3
 	spamSweepInterval                = time.Minute
 	maxReportContentLength           = 1000
 	freeBansDeleteMessageDays        = 7 // Discord's maximum
@@ -64,14 +66,10 @@ func (t *SpamTracker) Fingerprint(text string) string {
 	return string(mac.Sum(nil))
 }
 
-// Record adds a sighting and reports whether it crosses either spam threshold.
-// Once flagged, further copies within the window are returned as stragglers so
-// they can be deleted without another report.
-func (t *SpamTracker) Record(authorID, fingerprint string, inst models.TrackedInstance, window time.Duration, dupThreshold, crossThreshold int) (SpamVerdict, string, []models.TrackedInstance) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	key := authorID + "\x00" + fingerprint
+// sighting adds inst to the entry for key and returns it, or returns nil when the
+// key was already actioned within the window (the sighting is a straggler).
+// The caller must hold t.mu.
+func (t *SpamTracker) sighting(key, authorID, fingerprint string, inst models.TrackedInstance, window time.Duration) *models.TrackedMessage {
 	tm, ok := t.messages[key]
 	if !ok {
 		tm = &models.TrackedMessage{AuthorID: authorID, Fingerprint: fingerprint}
@@ -80,20 +78,44 @@ func (t *SpamTracker) Record(authorID, fingerprint string, inst models.TrackedIn
 
 	if inst.SeenAt.Before(tm.ActionedUntil) {
 		tm.ActionedUntil = inst.SeenAt.Add(window)
-		return SpamStraggler, "", []models.TrackedInstance{inst}
+		return nil
 	}
 
 	tm.Instances = pruneInstances(tm.Instances, inst.SeenAt.Add(-window))
 	tm.Instances = append(tm.Instances, inst)
+	return tm
+}
 
-	sameChannel := 0
-	channels := map[string]bool{}
-	for _, i := range tm.Instances {
-		channels[i.ChannelID] = true
-		if i.ChannelID == inst.ChannelID {
-			sameChannel++
-		}
+// flag hands back the sightings to act on and starts the cleanup period for stragglers.
+func flag(tm *models.TrackedMessage, inst models.TrackedInstance, window time.Duration) []models.TrackedInstance {
+	hits := tm.Instances
+	tm.Instances = nil
+	tm.ActionedUntil = inst.SeenAt.Add(window)
+	return hits
+}
+
+func countChannels(instances []models.TrackedInstance) map[string]int {
+	channels := map[string]int{}
+	for _, i := range instances {
+		channels[i.ChannelID]++
 	}
+	return channels
+}
+
+// Record adds a sighting and reports whether it crosses either spam threshold.
+// Once flagged, further copies within the window are returned as stragglers so
+// they can be deleted without another report.
+func (t *SpamTracker) Record(authorID, fingerprint string, inst models.TrackedInstance, window time.Duration, dupThreshold, crossThreshold int) (SpamVerdict, string, []models.TrackedInstance) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	tm := t.sighting(authorID+"\x00"+fingerprint, authorID, fingerprint, inst, window)
+	if tm == nil {
+		return SpamStraggler, "", []models.TrackedInstance{inst}
+	}
+
+	channels := countChannels(tm.Instances)
+	sameChannel := channels[inst.ChannelID]
 
 	var reason string
 	switch {
@@ -105,10 +127,29 @@ func (t *SpamTracker) Record(authorID, fingerprint string, inst models.TrackedIn
 		return SpamClean, "", nil
 	}
 
-	hits := tm.Instances
-	tm.Instances = nil
-	tm.ActionedUntil = inst.SeenAt.Add(window)
-	return SpamFlagged, reason, hits
+	return SpamFlagged, reason, flag(tm, inst, window)
+}
+
+// RecordBurst tracks every message from an author, whatever it says, and flags them once
+// they span channelThreshold channels within the window. It only uses channel IDs and
+// timestamps, so it works without the Message Content intent.
+func (t *SpamTracker) RecordBurst(authorID string, inst models.TrackedInstance, window time.Duration, channelThreshold int) (SpamVerdict, string, []models.TrackedInstance) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Content entries are keyed "<author id>\x00<hash>"; author IDs are numeric so this can't collide.
+	tm := t.sighting("burst\x00"+authorID, authorID, "", inst, window)
+	if tm == nil {
+		return SpamStraggler, "", []models.TrackedInstance{inst}
+	}
+
+	channels := countChannels(tm.Instances)
+	if len(channels) < channelThreshold {
+		return SpamClean, "", nil
+	}
+
+	reason := fmt.Sprintf("Posted in %d channels within %s", len(channels), window)
+	return SpamFlagged, reason, flag(tm, inst, window)
 }
 
 // MarkBanned returns true the first time a user is seen within the window.
@@ -166,7 +207,12 @@ func (c *Commands) startAutoMod() {
 	c.spamTracker = NewSpamTracker()
 	go func() {
 		for range time.Tick(spamSweepInterval) {
-			c.spamTracker.Sweep(time.Now(), c.spamWindow())
+			// Sweep with the longer window so neither detector loses sightings it still needs.
+			window := c.spamWindow()
+			if bw := c.burstWindow(); bw > window {
+				window = bw
+			}
+			c.spamTracker.Sweep(time.Now(), window)
 		}
 	}()
 }
@@ -190,6 +236,20 @@ func (c *Commands) spamCrossChannelThreshold() int {
 		return c.Config.SpamCrossChannelThreshold
 	}
 	return defaultSpamCrossChannelThreshold
+}
+
+func (c *Commands) burstWindow() time.Duration {
+	if c.Config.BurstWindowSeconds > 0 {
+		return time.Duration(c.Config.BurstWindowSeconds) * time.Second
+	}
+	return defaultBurstWindow
+}
+
+func (c *Commands) burstChannelThreshold() int {
+	if c.Config.BurstChannelThreshold > 0 {
+		return c.Config.BurstChannelThreshold
+	}
+	return defaultBurstChannelThreshold
 }
 
 func (c *Commands) spamTimeout() time.Duration {
@@ -244,7 +304,10 @@ func (c *Commands) ProcessAutoMod(s *discordgo.Session, m *discordgo.Message) bo
 	if c.processFreeBans(s, m) {
 		return true
 	}
-	return c.processSpam(s, m)
+	if c.processSpam(s, m) {
+		return true
+	}
+	return c.processBurst(s, m)
 }
 
 func (c *Commands) processFreeBans(s *discordgo.Session, m *discordgo.Message) bool {
@@ -284,11 +347,28 @@ func (c *Commands) processSpam(s *discordgo.Session, m *discordgo.Message) bool 
 
 	inst := models.TrackedInstance{ChannelID: m.ChannelID, MessageID: m.ID, SeenAt: time.Now()}
 	verdict, reason, hits := c.spamTracker.Record(m.Author.ID, fingerprint, inst, c.spamWindow(), c.spamDuplicateThreshold(), c.spamCrossChannelThreshold())
+	return c.actionSpam(s, m, "Spam Detected", verdict, reason, hits, c.Config.SpamEnforce, text)
+}
+
+// processBurst catches accounts posting across many channels in a short time, without reading message text.
+func (c *Commands) processBurst(s *discordgo.Session, m *discordgo.Message) bool {
+	if !c.Config.BurstDetection || c.spamTracker == nil {
+		return false
+	}
+
+	inst := models.TrackedInstance{ChannelID: m.ChannelID, MessageID: m.ID, SeenAt: time.Now()}
+	verdict, reason, hits := c.spamTracker.RecordBurst(m.Author.ID, inst, c.burstWindow(), c.burstChannelThreshold())
+	return c.actionSpam(s, m, "Channel Burst Detected", verdict, reason, hits, c.Config.BurstEnforce, messageText(m))
+}
+
+// actionSpam deletes flagged messages, times the author out and reports it (or, in dry-run
+// mode, only reports what it would have done). Returns true if the message was handled.
+func (c *Commands) actionSpam(s *discordgo.Session, m *discordgo.Message, title string, verdict SpamVerdict, reason string, hits []models.TrackedInstance, enforce bool, text string) bool {
 	switch verdict {
 	case SpamClean:
 		return false
 	case SpamStraggler:
-		if c.Config.SpamEnforce {
+		if enforce {
 			if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
 				log.Println("[!] Error (AutoMod Straggler Delete): " + err.Error())
 			}
@@ -308,7 +388,7 @@ func (c *Commands) processSpam(s *discordgo.Session, m *discordgo.Message) bool 
 	timeout := c.spamTimeout()
 	action := fmt.Sprintf("Delete %d message(s) + timeout for %s", len(hits), timeout)
 	var errs []string
-	if c.Config.SpamEnforce {
+	if enforce {
 		for channelID, ids := range byChannel {
 			if err := deleteMessages(s, channelID, ids); err != nil {
 				errs = append(errs, "Delete in <#"+channelID+"> failed: "+err.Error())
@@ -321,7 +401,7 @@ func (c *Commands) processSpam(s *discordgo.Session, m *discordgo.Message) bool 
 	}
 
 	// Ping moderators once the user is actually timed out so they can decide on a ban.
-	c.reportAutoMod(s, "Spam Detected", reason, action, c.Config.SpamEnforce, c.Config.SpamEnforce, strings.Join(errs, "\n"), m.Author, channels, text)
+	c.reportAutoMod(s, title, reason, action, enforce, enforce, strings.Join(errs, "\n"), m.Author, channels, text)
 	return true
 }
 
