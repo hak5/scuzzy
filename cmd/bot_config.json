@@ -46,5 +46,9 @@
     "burst_channel_threshold": 3,
 
     "free_bans_channel": "1556850412370272437",
-    "free_bans_enforce": false
+    "free_bans_enforce": false,
+
+    "youtube_channel_id": "",
+    "youtube_feed_channel": "",
+    "youtube_poll_minutes": 5
 }

@@ -63,6 +63,14 @@ type Configuration struct {
 	FreeBansChannel string `json:"free_bans_channel"`
 	FreeBansEnforce bool   `json:"free_bans_enforce"`
 
+	// YouTube feed posts new videos, shorts and live streams from youtube_channel_id (a UC... ID)
+	// to youtube_feed_channel. Live detection needs the SCUZZY_YOUTUBE_API_KEY environment variable.
+	// youtube_state_file defaults to youtube_seen.json next to the config file.
+	YoutubeChannelID   string `json:"youtube_channel_id"`
+	YoutubeFeedChannel string `json:"youtube_feed_channel"`
+	YoutubePollMinutes int    `json:"youtube_poll_minutes"`
+	YoutubeStateFile   string `json:"youtube_state_file"`
+
 	ConfigPath string
 
 	FilterLanguage       bool

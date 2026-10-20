@@ -110,6 +110,8 @@ func main() {
 	// Add Handlers for Bot
 	bot.AddHandler(c.ProcessMessage)
 
+	c.StartYoutubeFeed(bot)
+
 	log.Printf("[*] Bot Running.\n")
 
 	// Set Bot Status
