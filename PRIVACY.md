@@ -1,6 +1,6 @@
 # Scuzzy Bot Privacy Policy
 
-Last updated: October 12, 2026
+Last updated: October 27, 2026
 
 ## About this policy
 
@@ -35,7 +35,7 @@ Scuzzy uses this information only to run and moderate the Hak5 server:
 - **Honeypot channel.** Posting in a designated trap channel may result in an automatic ban and removal of your recent messages. These actions are reported to moderators.
 - **Commands.** Scuzzy responds to slash commands, such as setting a color role, joining a role, showing user or server info, or unit conversions.
 - **Moderation tools.** Staff use Scuzzy to kick, ban, purge, and set slow mode. When staff move or copy a message to another channel, Discord sends Scuzzy that message's text and author so it can be reposted.
-- **Deleted message log.** When a message is deleted, Scuzzy posts its author, channel and text to a staff-only log channel so moderators can review abuse.
+- **Deleted message log.** When a message is deleted, Scuzzy posts its author, channel and text to a staff-only log channel so moderators can review abuse. When Scuzzy itself deletes messages (spam removal, honeypot bans, purges and moves), it first copies them, with their author and channel, to the staff-only moderator channel.
 - **Welcome.** When you join, Scuzzy sends you a welcome direct message and may give you default roles.
 - **Docs answers.** The `/askdocs` command sends your question to the Hak5 documentation search, powered by GitBook, and posts the AI-generated answer in the channel.
 

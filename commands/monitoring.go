@@ -324,6 +324,15 @@ func (c *Commands) processFreeBans(s *discordgo.Session, m *discordgo.Message) b
 	action := fmt.Sprintf("Ban + delete last %d days of messages", freeBansDeleteMessageDays)
 	result := ""
 	if c.Config.FreeBansEnforce {
+		// The ban deletes their recent messages; copy the ones the bot has seen first
+		msgs := []copiedMessage{newCopiedMessage(m)}
+		for _, cm := range cachedMessagesBy(s, c.Config.GuildID, m.Author.ID) {
+			if cm.ID != m.ID {
+				msgs = append(msgs, newCopiedMessage(cm))
+			}
+		}
+		c.copyToModerators(s, "Free Bans: "+reason, msgs)
+
 		err := s.GuildBanCreateWithReason(c.Config.GuildID, m.Author.ID, reason, freeBansDeleteMessageDays)
 		if err != nil {
 			result = "Ban failed: " + err.Error()
@@ -369,6 +378,7 @@ func (c *Commands) actionSpam(s *discordgo.Session, m *discordgo.Message, title 
 		return false
 	case SpamStraggler:
 		if enforce {
+			c.copyToModerators(s, title+": follow-up message", []copiedMessage{newCopiedMessage(m)})
 			if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
 				log.Println("[!] Error (AutoMod Straggler Delete): " + err.Error())
 			}
@@ -389,6 +399,16 @@ func (c *Commands) actionSpam(s *discordgo.Session, m *discordgo.Message, title 
 	action := fmt.Sprintf("Delete %d message(s) + timeout for %s", len(hits), timeout)
 	var errs []string
 	if enforce {
+		var copies []copiedMessage
+		for _, h := range hits {
+			if h.MessageID == m.ID {
+				copies = append(copies, newCopiedMessage(m))
+			} else if hm := lookupMessage(s, h.ChannelID, h.MessageID); hm != nil {
+				copies = append(copies, newCopiedMessage(hm))
+			}
+		}
+		c.copyToModerators(s, title+": "+reason, copies)
+
 		for channelID, ids := range byChannel {
 			if err := deleteMessages(s, channelID, ids); err != nil {
 				errs = append(errs, "Delete in <#"+channelID+"> failed: "+err.Error())

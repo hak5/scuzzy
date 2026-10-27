@@ -74,9 +74,12 @@ func (c *Commands) handlePurgeChannel(s *discordgo.Session, i *discordgo.Interac
 	}
 
 	var delMsgs []string
+	var copies []copiedMessage
 	for _, v := range chanMsgs {
 		delMsgs = append(delMsgs, v.ID)
+		copies = append(copies, newCopiedMessage(v))
 	}
+	c.copyToModerators(s, "/purge by <@"+i.Member.User.ID+">", copies)
 
 	err = deleteMessages(s, i.ChannelID, delMsgs)
 	if err != nil {
@@ -194,11 +197,7 @@ func (c *Commands) promptMoveChannel(s *discordgo.Session, i *discordgo.Interact
 		return errors.New("error getting target message")
 	}
 
-	text := target.Content
-	for _, a := range target.Attachments {
-		text += "\n" + a.URL
-	}
-	text = strings.TrimSpace(text)
+	text := copyText(target)
 	if text == "" {
 		return errors.New("This message has no text to " + action + ".")
 	}
@@ -275,6 +274,13 @@ func (c *Commands) handleMoveSelect(s *discordgo.Session, i *discordgo.Interacti
 
 	done := "Copied to <#" + moveToId + ">."
 	if action == "move" {
+		c.copyToModerators(s, "moved to <#"+moveToId+"> by <@"+modID+">", []copiedMessage{{
+			ChannelID:  i.ChannelID,
+			AuthorID:   authorID,
+			AuthorName: original.Author.Name,
+			AuthorIcon: original.Author.IconURL,
+			Text:       original.Description,
+		}})
 		err = s.ChannelMessageDelete(i.ChannelID, messageID)
 		if err != nil {
 			return errors.New("error removing original message")
