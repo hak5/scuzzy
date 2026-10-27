@@ -24,7 +24,7 @@ This project is licensed under the BSD-3-Clause.
 - Quick links to Hak5 documentation, GitHub, payloads, the shop and support.
 - A docs search that answers product questions from the Hak5 documentation.
 - Small helpers such as temperature and unit conversions.
-- A YouTube feed. Scuzzy checks a YouTube channel's public feed every few minutes and posts new videos, Shorts and live streams to a feed channel. Set `youtube_channel_id` (the channel's `UC...` ID) and `youtube_feed_channel`. Live stream detection needs a YouTube Data API key in the `SCUZZY_YOUTUBE_API_KEY` environment variable; without one, streams are posted as videos. Posted video IDs are saved to `youtube_seen.json` next to the config so restarts don't repost them.
+- A YouTube feed. Scuzzy checks a YouTube channel's public feed every few minutes and posts new videos, Shorts and live streams to a feed channel. Set `youtube_channel_id` (the channel's `UC...` ID) and `youtube_feed_channel`. Set a YouTube Data API key in the `SCUZZY_YOUTUBE_API_KEY` environment variable to read uploads from the API instead of the RSS feed, which goes down from time to time, and to post live streams when they start. Without a key, streams are posted as videos. Posted video IDs are saved to `youtube_seen.json` next to the config so restarts don't repost them.
 
 ## Data handling:
 - Scuzzy has no database.

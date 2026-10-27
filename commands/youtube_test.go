@@ -15,11 +15,17 @@ type fakeYoutube struct {
 	shorts map[string]bool
 	status map[string]string // liveBroadcastContent per video; missing = not returned
 	stream map[string]bool
+	// feedDown makes RSS return 404, like YouTube's feed outages
+	feedDown bool
 }
 
 func (f *fakeYoutube) server(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/feed", func(w http.ResponseWriter, r *http.Request) {
+		if f.feedDown {
+			http.NotFound(w, r)
+			return
+		}
 		var sb strings.Builder
 		sb.WriteString(`<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns="http://www.w3.org/2005/Atom">`)
 		for _, e := range f.feed {
@@ -27,6 +33,17 @@ func (f *fakeYoutube) server(t *testing.T) *httptest.Server {
 		}
 		sb.WriteString("</feed>")
 		w.Write([]byte(sb.String()))
+	})
+	mux.HandleFunc("/playlist", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("playlistId") != "UU1" {
+			http.NotFound(w, r)
+			return
+		}
+		var items []map[string]interface{}
+		for _, e := range f.feed {
+			items = append(items, map[string]interface{}{"snippet": map[string]interface{}{"title": e.Title, "resourceId": map[string]string{"videoId": e.ID}}})
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"items": items})
 	})
 	mux.HandleFunc("/shorts/", func(w http.ResponseWriter, r *http.Request) {
 		if f.shorts[strings.TrimPrefix(r.URL.Path, "/shorts/")] {
@@ -68,6 +85,7 @@ func newTestWatcher(t *testing.T, srv *httptest.Server, apiKey, statePath string
 	w.feedURL = srv.URL + "/feed"
 	w.shortsURL = srv.URL + "/shorts/"
 	w.apiURL = srv.URL + "/api"
+	w.playlistURL = srv.URL + "/playlist"
 	return w
 }
 
@@ -174,5 +192,24 @@ func TestYoutubeLiveStreams(t *testing.T) {
 	w.poll("UC1")
 	if len(posted) != 2 {
 		t.Fatalf("posted %v after stream ended", posted)
+	}
+}
+
+func TestYoutubeAPIWorksWhenRSSIsDown(t *testing.T) {
+	f := &fakeYoutube{feed: []youtubeEntry{{"a", "A"}}, status: map[string]string{"a": "none", "v": "none"}, feedDown: true}
+	srv := f.server(t)
+	defer srv.Close()
+
+	var posted []postedVideo
+	w := newTestWatcher(t, srv, "k", filepath.Join(t.TempDir(), "state.json"), &posted)
+	if err := w.poll("UC1"); err != nil {
+		t.Fatal(err)
+	}
+	f.feed = []youtubeEntry{{"v", "V"}, {"a", "A"}}
+	if err := w.poll("UC1"); err != nil {
+		t.Fatal(err)
+	}
+	if len(posted) != 1 || posted[0] != (postedVideo{youtubeVideo, "v"}) {
+		t.Fatalf("posted %v", posted)
 	}
 }

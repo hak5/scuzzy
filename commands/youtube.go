@@ -47,14 +47,15 @@ type youtubeState struct {
 }
 
 type youtubeWatcher struct {
-	client    *http.Client
-	feedURL   string
-	shortsURL string
-	apiURL    string
-	apiKey    string
-	statePath string
-	state     *youtubeState
-	post      func(kind youtubeKind, e youtubeEntry) error
+	client      *http.Client
+	feedURL     string
+	playlistURL string
+	shortsURL   string
+	apiURL      string
+	apiKey      string
+	statePath   string
+	state       *youtubeState
+	post        func(kind youtubeKind, e youtubeEntry) error
 }
 
 func newYoutubeWatcher(statePath, apiKey string, post func(youtubeKind, youtubeEntry) error) *youtubeWatcher {
@@ -64,12 +65,13 @@ func newYoutubeWatcher(statePath, apiKey string, post func(youtubeKind, youtubeE
 			// /shorts/<id> redirects to /watch for normal videos; don't follow it
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
-		feedURL:   "https://www.youtube.com/feeds/videos.xml",
-		shortsURL: "https://www.youtube.com/shorts/",
-		apiURL:    "https://www.googleapis.com/youtube/v3/videos",
-		apiKey:    apiKey,
-		statePath: statePath,
-		post:      post,
+		feedURL:     "https://www.youtube.com/feeds/videos.xml",
+		shortsURL:   "https://www.youtube.com/shorts/",
+		apiURL:      "https://www.googleapis.com/youtube/v3/videos",
+		playlistURL: "https://www.googleapis.com/youtube/v3/playlistItems",
+		apiKey:      apiKey,
+		statePath:   statePath,
+		post:        post,
 	}
 }
 
@@ -98,7 +100,7 @@ func (c *Commands) StartYoutubeFeed(s *discordgo.Session) {
 			if c.Config.YoutubeChannelID != "" && c.Config.YoutubeFeedChannel != "" {
 				if w == nil || w.statePath != c.youtubeStatePath() {
 					if apiKey == "" {
-						log.Printf("[*] YouTube feed: %s is not set, so live streams will be posted as videos.\n", youtubeAPIKeyEnv)
+						log.Printf("[*] YouTube feed: %s is not set, so the RSS feed is used and live streams will be posted as videos.\n", youtubeAPIKeyEnv)
 					}
 					w = newYoutubeWatcher(c.youtubeStatePath(), apiKey, func(kind youtubeKind, e youtubeEntry) error {
 						return c.postYoutube(s, c.Config.YoutubeFeedChannel, kind, e)
@@ -153,7 +155,7 @@ func (w *youtubeWatcher) poll(channelID string) error {
 		return err
 	}
 
-	entries, err := w.fetchFeed(channelID)
+	entries, err := w.fetchEntries(channelID)
 	if err != nil {
 		return err
 	}
@@ -281,6 +283,64 @@ type youtubeFeed struct {
 		VideoID string `xml:"http://www.youtube.com/xml/schemas/2015 videoId"`
 		Title   string `xml:"title"`
 	} `xml:"entry"`
+}
+
+// fetchEntries lists the channel's latest uploads, newest first. The Data API is used when there's
+// a key, since YouTube's RSS feeds go down from time to time; RSS is the fallback.
+func (w *youtubeWatcher) fetchEntries(channelID string) ([]youtubeEntry, error) {
+	if w.apiKey == "" {
+		return w.fetchFeed(channelID)
+	}
+	entries, err := w.fetchUploads(channelID)
+	if err == nil {
+		return entries, nil
+	}
+	log.Println("[!] Error (YouTube Uploads API): " + err.Error() + ", trying RSS")
+	return w.fetchFeed(channelID)
+}
+
+// fetchUploads reads the channel's uploads playlist, whose ID is the channel ID with UC swapped for UU.
+func (w *youtubeWatcher) fetchUploads(channelID string) ([]youtubeEntry, error) {
+	if !strings.HasPrefix(channelID, "UC") {
+		return nil, errors.New("channel ID should start with UC")
+	}
+	q := url.Values{
+		"part":       {"snippet"},
+		"playlistId": {"UU" + channelID[2:]},
+		"maxResults": {"15"},
+		"key":        {w.apiKey},
+	}
+	resp, err := w.client.Get(w.playlistURL + "?" + q.Encode())
+	if err != nil {
+		// Don't log the URL, it contains the key
+		return nil, errors.New("request failed")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("returned " + resp.Status)
+	}
+
+	var body struct {
+		Items []struct {
+			Snippet struct {
+				Title      string `json:"title"`
+				ResourceID struct {
+					VideoID string `json:"videoId"`
+				} `json:"resourceId"`
+			} `json:"snippet"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return nil, err
+	}
+
+	var entries []youtubeEntry
+	for _, it := range body.Items {
+		if id := it.Snippet.ResourceID.VideoID; id != "" {
+			entries = append(entries, youtubeEntry{ID: id, Title: it.Snippet.Title})
+		}
+	}
+	return entries, nil
 }
 
 func (w *youtubeWatcher) fetchFeed(channelID string) ([]youtubeEntry, error) {
