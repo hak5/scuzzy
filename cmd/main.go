@@ -63,6 +63,14 @@ func main() {
 		log.Fatal("[!] Error: " + err.Error())
 	}
 
+	// Message Content is a privileged intent; it must also be enabled in the Discord Developer Portal
+	bot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
+	if Config.MessageContentIntent {
+		bot.Identify.Intents |= discordgo.IntentMessageContent
+	} else if Config.SpamDetection {
+		log.Printf("[!] Warning: message_content_intent is off, so spam detection and deleted message logs can't see message text.\n")
+	}
+
     // Enable Reconnect
     bot.ShouldReconnectOnError = true
 
@@ -94,9 +102,15 @@ func main() {
 		Config:      &Config,
 	}
 	c.RegisterHandlers()
+	err = c.SyncCommands(bot)
+	if err != nil {
+		log.Fatal("[!] Error: " + err.Error())
+	}
 
 	// Add Handlers for Bot
 	bot.AddHandler(c.ProcessMessage)
+
+	c.StartYoutubeFeed(bot)
 
 	log.Printf("[*] Bot Running.\n")
 

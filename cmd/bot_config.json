@@ -1,6 +1,4 @@
 {
-    "command_key": ".",
-
     "guild_id": "506629366659153951",
 
     "status_text": ".help",
@@ -29,5 +27,28 @@
 
     "ignored_users": [],
 
-    "logging_channel": "714369335254188053"
+    "logging_channel": "714369335254188053",
+    "moderator_channel": "817015480199282778",
+    "moderator_role_id": "759476875851595796",
+
+    "message_content_intent": false,
+
+    "spam_detection": true,
+    "spam_enforce": false,
+    "spam_window_seconds": 30,
+    "spam_duplicate_threshold": 4,
+    "spam_cross_channel_threshold": 3,
+    "spam_timeout_minutes": 60,
+
+    "burst_detection": true,
+    "burst_enforce": false,
+    "burst_window_seconds": 10,
+    "burst_channel_threshold": 3,
+
+    "free_bans_channel": "1556850412370272437",
+    "free_bans_enforce": false,
+
+    "youtube_channel_id": "",
+    "youtube_feed_channel": "",
+    "youtube_poll_minutes": 5
 }
